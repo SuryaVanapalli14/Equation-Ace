@@ -23,6 +23,12 @@ export default function HistoryTab() {
       setEquations([]);
       return;
     }
+    
+    if (!db) {
+        setLoading(false);
+        setEquations([]);
+        return;
+    }
 
     setLoading(true);
     const q = query(
@@ -38,7 +44,7 @@ export default function HistoryTab() {
       });
       setEquations(userEquations);
       setLoading(false);
-    });
+    }, () => setLoading(false));
 
     return () => unsubscribe();
   }, [user]);
@@ -103,7 +109,7 @@ export default function HistoryTab() {
               </CardContent>
               <CardFooter>
                  <p className="text-xs text-muted-foreground">
-                    Solved {eq.createdAt ? formatDistanceToNow(eq.createdAt.toDate()) : ''} ago
+                    {eq.createdAt ? `Solved ${formatDistanceToNow(eq.createdAt.toDate())} ago` : ''}
                  </p>
               </CardFooter>
             </Card>

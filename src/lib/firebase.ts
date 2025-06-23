@@ -1,7 +1,7 @@
-import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { initializeApp, getApps, getApp, type FirebaseOptions, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,26 +12,34 @@ const firebaseConfig: FirebaseOptions = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Check for missing Firebase config and throw a more helpful error
-if (
-  !firebaseConfig.apiKey ||
-  !firebaseConfig.authDomain ||
-  !firebaseConfig.projectId ||
-  !firebaseConfig.storageBucket ||
-  !firebaseConfig.messagingSenderId ||
-  !firebaseConfig.appId ||
-  firebaseConfig.apiKey === 'your-api-key'
-) {
-  // This will be caught by Next.js error boundary and displayed to the user
-  throw new Error(
-    "Firebase config is missing or invalid. Please check your .env file and ensure all NEXT_PUBLIC_FIREBASE_* variables are set correctly with values from your Firebase project."
-  );
+// Any value that is not set or is a placeholder will be considered invalid.
+export const isFirebaseConfigured = !Object.values(firebaseConfig).some(
+  (value) => !value || value.includes("your-")
+);
+
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
+
+if (isFirebaseConfigured) {
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  auth = getAuth(app);
+  db = getFirestore(app);
+  storage = getStorage(app);
+} else {
+  // This will show in the server console, not the browser.
+  console.warn(`
+    ---------------------------------------------------------------------
+    WARNING: Firebase configuration is missing or invalid.
+    The application will run in a limited mode.
+    Please copy .env.example to .env and fill in your Firebase project's
+    configuration details.
+    You can find them in your Firebase Console:
+    Project settings > General > Your apps > Web app.
+    After updating, restart the development server.
+    ---------------------------------------------------------------------
+  `);
 }
-
-
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
 
 export { app, auth, db, storage };

@@ -19,6 +19,7 @@ export default function AuthButton() {
   const { user, loading } = useAuth();
 
   const handleSignIn = async () => {
+    if (!auth) return;
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
@@ -28,6 +29,7 @@ export default function AuthButton() {
   };
 
   const handleSignOut = async () => {
+    if (!auth) return;
     try {
       await signOut(auth);
     } catch (error) {

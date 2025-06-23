@@ -52,7 +52,7 @@ export default function DrawTab() {
       const solveResult = await solveEquation({ ocrText: correctedResult.correctedText });
       setSolution(solveResult.solvedResult);
 
-      if (user) {
+      if (user && db && storage) {
         const storageRef = ref(storage, `equations/${user.uid}/${Date.now()}.png`);
         const uploadResult = await uploadString(storageRef, imageDataUrl, 'data_url');
         const downloadURL = await getDownloadURL(uploadResult.ref);

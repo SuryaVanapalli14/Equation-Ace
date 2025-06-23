@@ -69,7 +69,7 @@ export default function UploadTab() {
       const solveResult = await solveEquation({ ocrText: correctedResult.correctedText });
       setSolution(solveResult.solvedResult);
 
-      if (user) {
+      if (user && db && storage) {
         const storageRef = ref(storage, `equations/${user.uid}/${Date.now()}_${file.name}`);
         const uploadResult = await uploadString(storageRef, previewUrl, 'data_url');
         const downloadURL = await getDownloadURL(uploadResult.ref);
