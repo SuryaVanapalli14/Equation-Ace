@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef } from "react";
@@ -22,7 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import { UploadCloud, BrainCircuit, Check, X } from "lucide-react";
+import { UploadCloud, BrainCircuit, Check, X, Trash2 } from "lucide-react";
 import EquationResult from "./equation-result";
 
 import ReactCrop, {
@@ -52,7 +53,7 @@ function centerAspectCrop(
     makeAspectCrop(
       {
         unit: '%',
-        width: 90,
+        width: 100,
       },
       aspect,
       mediaWidth,
@@ -67,6 +68,7 @@ function centerAspectCrop(
 export default function UploadTab() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
   const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
@@ -100,9 +102,23 @@ export default function UploadTab() {
     }
   };
 
+  const handleRemoveImage = () => {
+    setFile(null);
+    setOriginalImageUrl(null);
+    setCrop(undefined);
+    setCompletedCrop(undefined);
+    setError(null);
+    setOcrText(null);
+    setCorrectedText(null);
+    setSolution(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
-    setCrop(centerAspectCrop(width, height, 16 / 9));
+    setCrop(centerAspectCrop(width, height, width / height));
   }
 
   async function getCroppedDataUrl(
@@ -245,34 +261,40 @@ export default function UploadTab() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex flex-col items-center space-y-4">
-          <label htmlFor="file-upload" className="w-full cursor-pointer">
-            <div className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg border-muted hover:border-primary transition-colors">
-                <UploadCloud className="w-8 h-8 text-muted-foreground" />
-                <span className="mt-2 text-sm text-muted-foreground">Click to upload or drag and drop</span>
-                <span className="text-xs text-muted-foreground">PNG or JPG</span>
-            </div>
-            <Input id="file-upload" type="file" className="hidden" onChange={handleFileChange} accept="image/png, image/jpeg" />
-          </label>
-
-          {originalImageUrl && (
-            <div className="p-2 border rounded-lg bg-muted w-full max-w-xl">
-              <ReactCrop
-                crop={crop}
-                onChange={(_, percentCrop) => setCrop(percentCrop)}
-                onComplete={(c) => setCompletedCrop(c)}
-                aspect={undefined} // Free crop
-                minHeight={50}
-              >
-                <img
-                  ref={imgRef}
-                  alt="Crop this image"
-                  data-ai-hint="handwritten equation"
-                  src={originalImageUrl}
-                  onLoad={onImageLoad}
-                  className="w-full"
-                />
-              </ReactCrop>
-            </div>
+          {!originalImageUrl ? (
+            <label htmlFor="file-upload" className="w-full cursor-pointer max-w-xl">
+              <div className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg border-muted hover:border-primary transition-colors">
+                  <UploadCloud className="w-8 h-8 text-muted-foreground" />
+                  <span className="mt-2 text-sm text-muted-foreground">Click to upload or drag and drop</span>
+                  <span className="text-xs text-muted-foreground">PNG or JPG</span>
+              </div>
+              <Input ref={fileInputRef} id="file-upload" type="file" className="hidden" onChange={handleFileChange} accept="image/png, image/jpeg" />
+            </label>
+          ) : (
+            <>
+              <div className="p-2 border rounded-lg bg-muted w-full max-w-xl">
+                <ReactCrop
+                  crop={crop}
+                  onChange={(_, percentCrop) => setCrop(percentCrop)}
+                  onComplete={(c) => setCompletedCrop(c)}
+                  aspect={undefined} // Free crop
+                  minHeight={50}
+                >
+                  <img
+                    ref={imgRef}
+                    alt="Crop this image"
+                    data-ai-hint="handwritten equation"
+                    src={originalImageUrl}
+                    onLoad={onImageLoad}
+                    className="w-full"
+                  />
+                </ReactCrop>
+              </div>
+              <Button variant="outline" onClick={handleRemoveImage}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Remove Image
+              </Button>
+            </>
           )}
         </div>
 
