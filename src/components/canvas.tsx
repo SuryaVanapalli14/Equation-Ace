@@ -3,6 +3,8 @@
 import { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 import { Button } from './ui/button';
 import { Eraser, Pencil, Trash2 } from 'lucide-react';
+import { Slider } from './ui/slider';
+import { Label } from './ui/label';
 
 interface CanvasProps {
   className?: string;
@@ -19,6 +21,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className }, ref) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>(null);
   const [drawMode, setDrawMode] = useState<'draw' | 'erase'>('draw');
+  const [strokeWidth, setStrokeWidth] = useState(5);
 
   const clearCanvas = () => {
     const canvas = canvasRef.current;
@@ -54,10 +57,10 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className }, ref) => {
   useEffect(() => {
     if (ctx) {
         ctx.lineCap = 'round';
-        ctx.lineWidth = drawMode === 'erase' ? 25 : 5;
+        ctx.lineWidth = drawMode === 'erase' ? 25 : strokeWidth;
         ctx.strokeStyle = drawMode === 'draw' ? 'black' : 'white';
     }
-  }, [ctx, drawMode]);
+  }, [ctx, drawMode, strokeWidth]);
 
   useImperativeHandle(ref, () => ({
     getDataURL: () => {
@@ -129,19 +132,35 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className }, ref) => {
             onTouchEnd={stopDrawing}
         />
        </div>
-      <div className="flex items-center gap-2">
-        <Button variant={drawMode === 'draw' ? 'secondary' : 'outline'} onClick={() => setDrawMode('draw')}>
-            <Pencil className="mr-2 h-4 w-4" />
-            Draw
-        </Button>
-        <Button variant={drawMode === 'erase' ? 'secondary' : 'outline'} onClick={() => setDrawMode('erase')}>
-            <Eraser className="mr-2 h-4 w-4" />
-            Erase
-        </Button>
-        <Button variant="outline" onClick={clearCanvas}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            Clear All
-        </Button>
+      <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-xl">
+        <div className="flex items-center gap-2">
+            <Button variant={drawMode === 'draw' ? 'secondary' : 'outline'} size="sm" onClick={() => setDrawMode('draw')}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Draw
+            </Button>
+            <Button variant={drawMode === 'erase' ? 'secondary' : 'outline'} size="sm" onClick={() => setDrawMode('erase')}>
+                <Eraser className="mr-2 h-4 w-4" />
+                Erase
+            </Button>
+            <Button variant="outline" size="sm" onClick={clearCanvas}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Clear
+            </Button>
+        </div>
+        <div className={`flex items-center gap-3 flex-grow transition-opacity ${drawMode !== 'draw' ? 'opacity-50 pointer-events-none' : ''}`}>
+            <Label htmlFor="stroke-width" className="text-sm whitespace-nowrap">Stroke Size</Label>
+            <Slider
+                id="stroke-width"
+                min={1}
+                max={20}
+                step={1}
+                value={[strokeWidth]}
+                onValueChange={(value) => setStrokeWidth(value[0])}
+                disabled={drawMode !== 'draw'}
+                className="w-full"
+            />
+            <span className="text-sm font-medium w-8 text-center bg-muted rounded-md px-2 py-1">{strokeWidth}</span>
+        </div>
       </div>
     </div>
   );
