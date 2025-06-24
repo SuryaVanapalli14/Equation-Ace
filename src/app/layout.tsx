@@ -5,7 +5,7 @@ import { AuthProvider } from "@/components/providers/auth-provider";
 
 export const metadata: Metadata = {
   title: 'Equation Ace',
-  description: 'Solve handwritten equations with AI.',
+  description: 'Solve mathematical equations with AI.',
 };
 
 export default function RootLayout({

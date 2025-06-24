@@ -257,7 +257,7 @@ export default function UploadTab() {
     <Card>
       <CardHeader>
         <CardTitle>Upload Image</CardTitle>
-        <CardDescription>Upload, crop, and solve a handwritten equation with AI.</CardDescription>
+        <CardDescription>Upload, crop, and solve a mathematical equation with AI.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex flex-col items-center space-y-4">
@@ -283,7 +283,7 @@ export default function UploadTab() {
                   <img
                     ref={imgRef}
                     alt="Crop this image"
-                    data-ai-hint="handwritten equation"
+                    data-ai-hint="mathematical equation"
                     src={originalImageUrl}
                     onLoad={onImageLoad}
                     className="w-full"

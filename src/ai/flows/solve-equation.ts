@@ -11,7 +11,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const SolveEquationInputSchema = z.object({
-  ocrText: z.string().describe('The OCR extracted text of the handwritten equation.'),
+  ocrText: z.string().describe('The OCR extracted text of the equation.'),
 });
 export type SolveEquationInput = z.infer<typeof SolveEquationInputSchema>;
 
@@ -28,7 +28,7 @@ const solveEquationPrompt = ai.definePrompt({
   name: 'solveEquationPrompt',
   input: {schema: SolveEquationInputSchema},
   output: {schema: SolveEquationOutputSchema},
-  prompt: `You are an expert AI mathematician with a deep understanding of a wide range of mathematical fields. You will be given the OCR output of a handwritten equation.
+  prompt: `You are an expert AI mathematician with a deep understanding of a wide range of mathematical fields. You will be given the OCR output of an equation.
 
 Your task is to solve the equation or problem presented. Your capabilities should cover:
 - **Algebra:** Solving for variables, simplifying expressions, systems of equations.

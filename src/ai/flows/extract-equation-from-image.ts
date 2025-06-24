@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview Extracts a handwritten equation from an image using OCR.
+ * @fileOverview Extracts a mathematical equation from an image using OCR.
  *
  * - extractEquationFromImage - A function that handles the equation extraction process.
  * - ExtractEquationFromImageInput - The input type for the extractEquationFromImage function.
@@ -14,7 +14,7 @@ const ExtractEquationFromImageInputSchema = z.object({
   photoDataUri: z
     .string()
     .describe(
-      "A photo of a handwritten equation, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A photo of a mathematical equation, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
 export type ExtractEquationFromImageInput = z.infer<typeof ExtractEquationFromImageInputSchema>;
@@ -36,9 +36,9 @@ const extractEquationFromImagePrompt = ai.definePrompt({
   name: 'extractEquationFromImagePrompt',
   input: {schema: ExtractEquationFromImageInputSchema},
   output: {schema: ExtractEquationFromImageOutputSchema},
-  prompt: `You are an OCR expert. Extract the equation from the image.
+  prompt: `You are an OCR expert. Extract the mathematical equation from the image. The equation could be handwritten or digitally typed.
 
-   Image: {{media url=photoDataUri}}`,
+Image: {{media url=photoDataUri}}`,
 });
 
 const extractEquationFromImageFlow = ai.defineFlow(

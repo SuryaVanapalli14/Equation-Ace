@@ -88,7 +88,7 @@ export default function HistoryTab() {
                 <div className="aspect-video relative w-full bg-muted rounded-lg overflow-hidden border">
                     <Image
                         src={eq.imageUrl}
-                        alt="Handwritten equation"
+                        alt="Equation image"
                         fill
                         className="object-contain"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
