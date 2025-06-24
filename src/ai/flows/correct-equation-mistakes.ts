@@ -29,9 +29,14 @@ const correctEquationMistakesPrompt = ai.definePrompt({
   name: 'correctEquationMistakesPrompt',
   input: {schema: CorrectEquationMistakesInputSchema},
   output: {schema: CorrectEquationMistakesOutputSchema},
-  prompt: `You are an expert in correcting common OCR mistakes in handwritten math equations.
+  prompt: `You are an expert in correcting common OCR mistakes in handwritten math equations. Your goal is to produce a valid mathematical expression that can be solved.
 
-You will receive the OCR output of a handwritten equation. Your task is to correct common mistakes, such as misinterpreting 'O' as '0', '^' as '**', 'S' as '∫', or malformed text into 'd/dx'. Your goal is to produce a valid mathematical expression.
+You will receive the OCR output of a handwritten equation. Your task is to correct common mistakes. This includes, but is not limited to:
+- Misinterpreting 'O' as '0', 'l' as '1', 'S' as '5' or '∫'.
+- Fixing malformed text for calculus, like 'd/dx', 'dy/dx', or '∫'.
+- Recognizing probability and statistics notation, like 'P(A)', 'nCr', 'Σ', or '!'.
+- Correcting exponents, like 'x^2' instead of 'x2'.
+- Ensuring standard mathematical operators (+, -, *, /) are correctly represented.
 
 Original OCR Text: {{{ocrText}}}
 

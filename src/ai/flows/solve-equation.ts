@@ -28,7 +28,23 @@ const solveEquationPrompt = ai.definePrompt({
   name: 'solveEquationPrompt',
   input: {schema: SolveEquationInputSchema},
   output: {schema: SolveEquationOutputSchema},
-  prompt: `You are an expert AI mathematician. You will be given the OCR output of a handwritten equation. Your task is to solve the equation. This can include algebraic equations, as well as calculus problems like differentiation (e.g., dy/dx) and integration (e.g., ∫f(x)dx). Provide the solved result.
+  prompt: `You are an expert AI mathematician with a deep understanding of a wide range of mathematical fields. You will be given the OCR output of a handwritten equation.
+
+Your task is to solve the equation or problem presented. Your capabilities should cover:
+- **Algebra:** Solving for variables, simplifying expressions, systems of equations.
+- **Calculus:**
+    - **Differentiation:** Finding derivatives (e.g., d/dx(x^2), f'(x)).
+    - **Integration:** Solving definite and indefinite integrals (e.g., ∫(2x)dx).
+    - **Limits:** Evaluating limits.
+    - **Series:** Calculating sums of series.
+- **Probability:** Calculating probabilities of events (e.g., P(A U B), P(A|B)).
+- **Statistics:**
+    - Calculating mean, median, mode.
+    - Permutations and Combinations (nPr, nCr).
+    - Problems involving factorials (!).
+    - Summation (Σ).
+
+Provide the final solved result. If the problem has multiple steps, show the main steps but focus on delivering a clear final answer.
 
 OCR Text: {{{ocrText}}}`,
 });
