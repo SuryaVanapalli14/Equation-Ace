@@ -40,6 +40,7 @@ import { solveEquation } from "@/ai/flows/solve-equation";
 import { db, storage } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
+import { Textarea } from "@/components/ui/textarea";
 
 // Helper to center the initial crop
 function centerAspectCrop(
@@ -295,12 +296,15 @@ export default function UploadTab() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>Confirm Extracted Equation</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Please review the equation extracted from the image. Does this look correct?
+                        Please review the equation extracted from the image. You can edit it below if needed before solving.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                <div className="font-code text-xl bg-muted p-4 rounded-md text-center break-all">
-                    {ocrText || "..."}
-                </div>
+                <Textarea
+                    value={ocrText || ""}
+                    onChange={(e) => setOcrText(e.target.value)}
+                    className="font-code text-lg min-h-[80px]"
+                    placeholder="Extracted equation..."
+                />
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={handleCancelSolve}>
                         <X className="mr-2 h-4 w-4" />
