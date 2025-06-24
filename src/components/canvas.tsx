@@ -2,11 +2,9 @@
 
 import { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 import { Button } from './ui/button';
-import { Eraser } from 'lucide-react';
+import { Eraser, Pencil, Trash2 } from 'lucide-react';
 
 interface CanvasProps {
-  width?: number;
-  height?: number;
   className?: string;
 }
 
@@ -20,6 +18,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>(null);
+  const [drawMode, setDrawMode] = useState<'draw' | 'erase'>('draw');
 
   const clearCanvas = () => {
     const canvas = canvasRef.current;
@@ -40,19 +39,25 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className }, ref) => {
                 canvas.height = height;
                 const context = canvas.getContext('2d');
                 if (context) {
-                    context.lineCap = 'round';
-                    context.strokeStyle = 'black';
-                    context.lineWidth = 5;
                     setCtx(context);
-                    clearCanvas();
+                    // Initial clear
+                    context.fillStyle = "white";
+                    context.fillRect(0, 0, canvas.width, canvas.height);
                 }
             }
         });
         resizeObserver.observe(container);
         return () => resizeObserver.disconnect();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (ctx) {
+        ctx.lineCap = 'round';
+        ctx.lineWidth = drawMode === 'erase' ? 25 : 5;
+        ctx.strokeStyle = drawMode === 'draw' ? 'black' : 'white';
+    }
+  }, [ctx, drawMode]);
 
   useImperativeHandle(ref, () => ({
     getDataURL: () => {
@@ -124,10 +129,20 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className }, ref) => {
             onTouchEnd={stopDrawing}
         />
        </div>
-      <Button variant="outline" onClick={clearCanvas}>
-          <Eraser className="mr-2 h-4 w-4" />
-          Clear Canvas
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button variant={drawMode === 'draw' ? 'secondary' : 'outline'} onClick={() => setDrawMode('draw')}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Draw
+        </Button>
+        <Button variant={drawMode === 'erase' ? 'secondary' : 'outline'} onClick={() => setDrawMode('erase')}>
+            <Eraser className="mr-2 h-4 w-4" />
+            Erase
+        </Button>
+        <Button variant="outline" onClick={clearCanvas}>
+            <Trash2 className="mr-2 h-4 w-4" />
+            Clear All
+        </Button>
+      </div>
     </div>
   );
 });
