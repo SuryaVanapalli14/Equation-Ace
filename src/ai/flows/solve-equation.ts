@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview Solves a math equation extracted from an image using OCR.
+ * @fileOverview Solves a math equation, including algebraic, differential, and integral equations, from OCR text.
  *
  * - solveEquation - A function that takes OCR text as input and returns the solved equation.
  * - SolveEquationInput - The input type for the solveEquation function.
@@ -28,7 +28,7 @@ const solveEquationPrompt = ai.definePrompt({
   name: 'solveEquationPrompt',
   input: {schema: SolveEquationInputSchema},
   output: {schema: SolveEquationOutputSchema},
-  prompt: `You are an AI equation solver.  You will be given the OCR output of a handwritten equation.  Solve the equation and return the result.
+  prompt: `You are an expert AI mathematician. You will be given the OCR output of a handwritten equation. Your task is to solve the equation. This can include algebraic equations, as well as calculus problems like differentiation (e.g., dy/dx) and integration (e.g., ∫f(x)dx). Provide the solved result.
 
 OCR Text: {{{ocrText}}}`,
 });

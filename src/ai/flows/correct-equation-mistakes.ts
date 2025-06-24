@@ -31,11 +31,11 @@ const correctEquationMistakesPrompt = ai.definePrompt({
   output: {schema: CorrectEquationMistakesOutputSchema},
   prompt: `You are an expert in correcting common OCR mistakes in handwritten math equations.
 
-You will receive the OCR output of a handwritten equation. Your task is to correct common mistakes, such as misinterpreting 'O' as '0' or '^' as '**'.
+You will receive the OCR output of a handwritten equation. Your task is to correct common mistakes, such as misinterpreting 'O' as '0', '^' as '**', 'S' as '∫', or malformed text into 'd/dx'. Your goal is to produce a valid mathematical expression.
 
 Original OCR Text: {{{ocrText}}}
 
-Corrected Equation Text:`, // Ensure output only contains the corrected equation
+Corrected Equation Text:`,
 });
 
 const correctEquationMistakesFlow = ai.defineFlow(
