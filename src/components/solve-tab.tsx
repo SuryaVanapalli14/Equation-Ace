@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import { UploadCloud, BrainCircuit, Check, X, Trash2, Pencil, GalleryHorizontal } from "lucide-react";
+import { UploadCloud, BrainCircuit, Check, X, Trash2, Pencil, GalleryHorizontal, Keyboard } from "lucide-react";
 import EquationResult from "./equation-result";
 import Canvas, { type CanvasRef } from "./canvas";
 import { Textarea } from "@/components/ui/textarea";
@@ -72,7 +72,8 @@ export default function SolveTab() {
   const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
-  const [activeInput, setActiveInput] = useState<'upload' | 'draw' | null>(null);
+  const [textInput, setTextInput] = useState("");
+  const [activeInput, setActiveInput] = useState<'upload' | 'draw' | 'text' | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -92,14 +93,25 @@ export default function SolveTab() {
     setError(null);
     setExplanation(null);
   };
+
+  const handleRemoveImage = () => {
+    setFile(null);
+    setOriginalImageUrl(null);
+    setCrop(undefined);
+    setCompletedCrop(undefined);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    resetResults();
+  };
   
   // --- File & Upload Handlers ---
   const processFile = (selectedFile: File) => {
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
     if (selectedFile && validTypes.includes(selectedFile.type)) {
-      // Clear canvas and drawing state
       canvasRef.current?.clear();
       setIsDrawing(false);
+      setTextInput("");
       
       setFile(selectedFile);
       setCrop(undefined);
@@ -146,18 +158,6 @@ export default function SolveTab() {
     }
   };
 
-
-  const handleRemoveImage = () => {
-    setFile(null);
-    setOriginalImageUrl(null);
-    setCrop(undefined);
-    setCompletedCrop(undefined);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    resetResults();
-  };
-
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
     setCrop(centerAspectCrop(width, height, width / height));
@@ -167,10 +167,22 @@ export default function SolveTab() {
   const handleCanvasInteraction = () => {
     if (!isDrawing) {
       setIsDrawing(true);
-      if (file) {
-        handleRemoveImage();
-      }
+      if (file) handleRemoveImage();
+      if (textInput) setTextInput("");
       resetResults();
+    }
+  };
+
+  // --- Text Input ---
+  const handleTextInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setTextInput(e.target.value);
+    if(e.target.value.length > 0) {
+        if(file) handleRemoveImage();
+        if(isDrawing) {
+            canvasRef.current?.clear();
+            setIsDrawing(false);
+        }
+        resetResults();
     }
   };
 
@@ -196,9 +208,13 @@ export default function SolveTab() {
 
   const handleInitiateSolve = async () => {
     let imageDataUrl: string | null = null;
-    let source: 'upload' | 'draw' | null = null;
+    let source: 'upload' | 'draw' | 'text' | null = null;
+    let problemToSolve: string | null = null;
 
-    if (file && originalImageUrl && imgRef.current && completedCrop && completedCrop.width > 0) {
+    if (textInput.trim()) {
+      problemToSolve = textInput.trim();
+      source = 'text';
+    } else if (file && originalImageUrl && imgRef.current && completedCrop && completedCrop.width > 0) {
       imageDataUrl = await getCroppedDataUrl(imgRef.current, completedCrop);
       source = 'upload';
     } else if (isDrawing && canvasRef.current) {
@@ -206,8 +222,8 @@ export default function SolveTab() {
       source = 'draw';
     }
 
-    if (!imageDataUrl || !source) {
-      toast({ title: "No Input Provided", description: "Please upload an image or draw an equation.", variant: "destructive" });
+    if (!source) {
+      toast({ title: "No Input Provided", description: "Please upload an image, draw, or type in a problem.", variant: "destructive" });
       return;
     }
     
@@ -216,20 +232,24 @@ export default function SolveTab() {
     resetResults();
 
     try {
-      const ocrResult = await extractEquationFromImage({ photoDataUri: imageDataUrl });
-      
-      if (!ocrResult.ocrText.trim()) {
-        const message = source === 'draw' ? "The canvas is empty. Please draw an equation." : "Could not find any text in the selected area.";
-        toast({ title: "Nothing to solve", description: message, variant: "destructive" });
-        setIsLoading(false);
-        return;
+      if (source === 'text') {
+        setOcrText(problemToSolve);
+        setIsConfirming(true);
+      } else if (imageDataUrl) {
+        const ocrResult = await extractEquationFromImage({ photoDataUri: imageDataUrl });
+        
+        if (!ocrResult.ocrText.trim()) {
+          const message = source === 'draw' ? "The canvas is empty. Please draw an equation." : "Could not find any text in the selected area.";
+          toast({ title: "Nothing to solve", description: message, variant: "destructive" });
+          setIsLoading(false);
+          return;
+        }
+        setOcrText(ocrResult.ocrText);
+        setIsConfirming(true);
       }
-      
-      setOcrText(ocrResult.ocrText);
-      setIsConfirming(true);
     } catch (e: any) {
       console.error(e);
-      setError("An error occurred while extracting the equation from the image.");
+      setError("An error occurred while extracting text from the image.");
       toast({ title: "Extraction Error", description: "Could not read text from the image. Please try again.", variant: "destructive" });
       setIsLoading(false);
     }
@@ -253,6 +273,8 @@ export default function SolveTab() {
           finalImageDataUrl = await getCroppedDataUrl(imgRef.current, completedCrop);
         } else if (activeInput === 'draw' && canvasRef.current) {
           finalImageDataUrl = canvasRef.current.getDataURL();
+        } else if (activeInput === 'text') {
+          // No image to save for text input, or we can generate one. For now, let's not.
         }
         
         if(finalImageDataUrl) {
@@ -270,6 +292,9 @@ export default function SolveTab() {
             createdAt: serverTimestamp(),
           });
           toast({ title: "Success!", description: "Equation solved and saved to your history." });
+        } else {
+          // Handle saving text-only solutions if desired, maybe without an image URL
+           toast({ title: "Equation Solved", description: "Log in to save your results to history." });
         }
       } else {
          toast({ title: "Equation Solved", description: "Log in to save your results to history." });
@@ -277,7 +302,7 @@ export default function SolveTab() {
     } catch (e: any) {
       console.error(e);
       setError("An error occurred while solving the equation.");
-      toast({ title: "Solving Error", description: "The AI might not be able to solve this equation yet.", variant: "destructive" });
+      toast({ title: "Solving Error", description: "The AI might not be able to solve this problem yet.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -289,13 +314,13 @@ export default function SolveTab() {
     setIsLoading(false);
   };
   
-  const canSolve = !!file || isDrawing;
+  const canSolve = !!file || isDrawing || !!textInput.trim();
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Solve Equation</CardTitle>
-        <CardDescription>Upload an image or draw an equation on the canvas below, then let AI solve it for you.</CardDescription>
+        <CardTitle>Solve a Math Problem</CardTitle>
+        <CardDescription>Upload an image, draw, or type a problem, then let AI solve it for you.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid md:grid-cols-2 gap-8 items-start">
@@ -334,17 +359,31 @@ export default function SolveTab() {
           </div>
           
           {/* Right Column: Draw */}
-          <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg h-full">
+          <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg h-full min-h-[350px]">
             <h3 className="text-lg font-medium flex items-center gap-2"><Pencil className="w-5 h-5"/> Or Draw It</h3>
             <Canvas ref={canvasRef} onInteraction={handleCanvasInteraction} />
           </div>
 
         </div>
+        
+        {/* Text Input */}
+        <div className="pt-6 border-t">
+          <h3 className="text-lg font-medium text-center mb-4 flex items-center justify-center gap-2">
+            <Keyboard className="w-5 h-5"/> Or Type it Manually
+          </h3>
+          <Textarea 
+            placeholder="Type your math problem or equation here... For example: 'If a train travels at 60 mph for 3 hours, how far does it travel?' or 'd/dx(sin(x^2))'"
+            value={textInput}
+            onChange={handleTextInputChange}
+            rows={4}
+            className="max-w-4xl mx-auto"
+          />
+        </div>
 
         <div className="flex flex-col items-center space-y-6 pt-6 border-t">
           <Button onClick={handleInitiateSolve} disabled={!canSolve || isLoading} size="lg">
             <BrainCircuit className="mr-2 h-5 w-5" />
-            {isLoading ? "Processing..." : "Solve Equation"}
+            {isLoading ? "Processing..." : "Solve Problem"}
           </Button>
           
           <div className="w-full max-w-4xl">
@@ -362,10 +401,10 @@ export default function SolveTab() {
         <AlertDialog open={isConfirming} onOpenChange={setIsConfirming}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Extracted Equation</AlertDialogTitle>
-              <AlertDialogDescription>Please review and edit the extracted equation if needed before solving.</AlertDialogDescription>
+              <AlertDialogTitle>Confirm Extracted Text</AlertDialogTitle>
+              <AlertDialogDescription>Please review and edit the extracted text if needed before solving.</AlertDialogDescription>
             </AlertDialogHeader>
-            <Textarea value={ocrText || ""} onChange={(e) => setOcrText(e.target.value)} className="font-code text-lg min-h-[80px]" />
+            <Textarea value={ocrText || ""} onChange={(e) => setOcrText(e.target.value)} className="font-code text-lg min-h-[120px]" />
             <AlertDialogFooter>
               <AlertDialogCancel onClick={handleCancelSolve}><X className="mr-2 h-4 w-4" />Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleConfirmSolve}><Check className="mr-2 h-4 w-4" />Confirm & Solve</AlertDialogAction>

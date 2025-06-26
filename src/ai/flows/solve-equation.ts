@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview Solves a math equation, including algebraic, differential, and integral equations, from OCR text.
+ * @fileOverview Solves a math problem, including word problems, algebraic, differential, and integral equations, from OCR text.
  *
  * - solveEquation - A function that takes OCR text as input and returns the solved equation and a step-by-step explanation.
  * - SolveEquationInput - The input type for the solveEquation function.
@@ -11,14 +11,14 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const SolveEquationInputSchema = z.object({
-  ocrText: z.string().describe('The OCR extracted text of the equation.'),
+  ocrText: z.string().describe('The OCR extracted text of the math problem.'),
 });
 export type SolveEquationInput = z.infer<typeof SolveEquationInputSchema>;
 
 const SolveEquationOutputSchema = z.object({
   solvedResult: z
     .array(z.string())
-    .describe('The final solved result of the equation.'),
+    .describe('The final solved result of the problem.'),
   explanation: z
     .array(z.string())
     .describe(
@@ -35,9 +35,10 @@ const solveEquationPrompt = ai.definePrompt({
   name: 'solveEquationPrompt',
   input: {schema: SolveEquationInputSchema},
   output: {schema: SolveEquationOutputSchema},
-  prompt: `You are an expert AI mathematician with a deep understanding of a wide range of mathematical fields. You will be given the OCR output of an equation.
+  prompt: `You are an expert AI mathematician with a deep understanding of a wide range of mathematical fields. You will be given OCR text that might contain a word problem, a direct equation, or a mix of both.
 
-Your task is to solve the equation or problem presented. Your capabilities should cover:
+Your task is to understand the entire context and solve the problem presented. Your capabilities should cover:
+- **Word Problems:** Parsing and solving problems described in natural language.
 - **Algebra:** Solving for variables, simplifying expressions, systems of equations.
 - **Calculus:**
     - **Differentiation:** Finding derivatives (e.g., d/dx(x^2), f'(x)).

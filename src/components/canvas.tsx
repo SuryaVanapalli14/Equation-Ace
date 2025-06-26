@@ -1,10 +1,12 @@
 "use client";
 
-import { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
+import { useRef, useEffect, useState, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { Button } from './ui/button';
-import { Eraser, Pencil, Trash2 } from 'lucide-react';
+import { Eraser, Pencil, Trash2, Palette, Grid3x3, Minus, AlignJustify } from 'lucide-react';
 import { Slider } from './ui/slider';
 import { Label } from './ui/label';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
 interface CanvasProps {
   className?: string;
@@ -16,6 +18,8 @@ export interface CanvasRef {
   clear: () => void;
 }
 
+type GridType = 'none' | 'math' | 'lines';
+
 const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -23,14 +27,46 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
   const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>(null);
   const [drawMode, setDrawMode] = useState<'draw' | 'erase'>('draw');
   const [strokeWidth, setStrokeWidth] = useState(5);
+  const [strokeColor, setStrokeColor] = useState('black');
+  const [grid, setGrid] = useState<GridType>('none');
 
-  const clearCanvas = () => {
+  const drawGrid = useCallback((gridType: GridType, context: CanvasRenderingContext2D, width: number, height: number) => {
+    if (gridType === 'none') return;
+    context.beginPath();
+    context.lineWidth = 1;
+
+    if (gridType === 'math') {
+      context.strokeStyle = '#e0e0e0'; // light grey
+      for (let x = 0; x <= width; x += 20) {
+        context.moveTo(x, 0);
+        context.lineTo(x, height);
+      }
+      for (let y = 0; y <= height; y += 20) {
+        context.moveTo(0, y);
+        context.lineTo(width, y);
+      }
+    } else if (gridType === 'lines') {
+      context.strokeStyle = '#a0c4ff'; // light blue
+      for (let y = 0; y <= height; y += 25) {
+        context.moveTo(0, y);
+        context.lineTo(width, y);
+      }
+      context.strokeStyle = '#ffadad'; // light red
+      context.moveTo(30, 0);
+      context.lineTo(30, height);
+    }
+    context.stroke();
+  }, []);
+
+  const clearCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (canvas && ctx) {
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawGrid(grid, ctx, canvas.width, canvas.height);
     }
-  };
+  }, [ctx, grid, drawGrid]);
+
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -39,35 +75,40 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
         const resizeObserver = new ResizeObserver(entries => {
             for (let entry of entries) {
                 const { width, height } = entry.contentRect;
-                canvas.width = width;
-                canvas.height = height;
-                const context = canvas.getContext('2d');
-                if (context) {
-                    setCtx(context);
-                    // Initial clear
-                    context.fillStyle = "white";
-                    context.fillRect(0, 0, canvas.width, canvas.height);
+                if (width > 0 && height > 0) {
+                  canvas.width = width;
+                  canvas.height = height;
+                  const context = canvas.getContext('2d');
+                  if (context) {
+                      setCtx(context);
+                      context.fillStyle = "white";
+                      context.fillRect(0, 0, canvas.width, canvas.height);
+                      drawGrid(grid, context, width, height);
+                  }
                 }
             }
         });
         resizeObserver.observe(container);
         return () => resizeObserver.disconnect();
     }
-  }, []);
+  }, [grid, drawGrid]);
 
   useEffect(() => {
     if (ctx) {
         ctx.lineCap = 'round';
         ctx.lineWidth = drawMode === 'erase' ? 25 : strokeWidth;
-        ctx.strokeStyle = drawMode === 'draw' ? 'black' : 'white';
+        ctx.strokeStyle = drawMode === 'draw' ? strokeColor : 'white';
     }
-  }, [ctx, drawMode, strokeWidth]);
+  }, [ctx, drawMode, strokeWidth, strokeColor]);
+
+  useEffect(() => {
+    clearCanvas();
+  }, [grid, clearCanvas]);
 
   useImperativeHandle(ref, () => ({
     getDataURL: () => {
       const canvas = canvasRef.current;
       if (!canvas) return "";
-      // Create a new canvas to add a small margin
       const tempCanvas = document.createElement('canvas');
       const tempCtx = tempCanvas.getContext('2d');
       const margin = 20;
@@ -118,6 +159,8 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
       setIsDrawing(false);
     }
   };
+  
+  const colors = ['black', 'blue', 'red'];
 
   return (
     <div className='flex flex-col items-center gap-4 w-full h-full'>
@@ -134,23 +177,27 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
             onTouchEnd={stopDrawing}
         />
        </div>
-      <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
+      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4 w-full">
         <div className="flex items-center gap-2">
-            <Button variant={drawMode === 'draw' ? 'secondary' : 'outline'} size="sm" onClick={() => setDrawMode('draw')}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Draw
-            </Button>
-            <Button variant={drawMode === 'erase' ? 'secondary' : 'outline'} size="sm" onClick={() => setDrawMode('erase')}>
-                <Eraser className="mr-2 h-4 w-4" />
-                Erase
-            </Button>
-            <Button variant="outline" size="sm" onClick={clearCanvas}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Clear
-            </Button>
+            <Button variant={drawMode === 'draw' ? 'secondary' : 'outline'} size="sm" onClick={() => setDrawMode('draw')}><Pencil /> Draw</Button>
+            <Button variant={drawMode === 'erase' ? 'secondary' : 'outline'} size="sm" onClick={() => setDrawMode('erase')}><Eraser /> Erase</Button>
+            <Button variant="outline" size="sm" onClick={clearCanvas}><Trash2 /> Clear</Button>
         </div>
-        <div className={`flex items-center gap-3 flex-grow transition-opacity ${drawMode !== 'draw' ? 'opacity-50 pointer-events-none' : ''}`}>
-            <Label htmlFor="stroke-width" className="text-sm whitespace-nowrap">Stroke Size</Label>
+
+        <div className={`flex items-center gap-2 transition-opacity ${drawMode !== 'draw' ? 'opacity-50 pointer-events-none' : ''}`}>
+            <Label htmlFor="stroke-color"><Palette /></Label>
+            {colors.map(color => (
+                <button
+                    key={color}
+                    onClick={() => setStrokeColor(color)}
+                    className={cn('w-6 h-6 rounded-full border-2 transition-transform', strokeColor === color ? 'scale-110 border-primary' : 'border-transparent')}
+                    style={{ backgroundColor: color }}
+                />
+            ))}
+        </div>
+        
+        <div className={`flex items-center gap-2 flex-grow min-w-[150px] transition-opacity ${drawMode !== 'draw' ? 'opacity-50 pointer-events-none' : ''}`}>
+            <Label htmlFor="stroke-width" className="text-sm whitespace-nowrap">Size</Label>
             <Slider
                 id="stroke-width"
                 min={1}
@@ -159,10 +206,31 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
                 value={[strokeWidth]}
                 onValueChange={(value) => setStrokeWidth(value[0])}
                 disabled={drawMode !== 'draw'}
-                className="w-full"
             />
-            <span className="text-sm font-medium w-8 text-center bg-muted rounded-md px-2 py-1">{strokeWidth}</span>
         </div>
+        
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                    {grid === 'none' && <Minus />}
+                    {grid === 'math' && <Grid3x3 />}
+                    {grid === 'lines' && <AlignJustify />}
+                    <span className="ml-2">Grid</span>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setGrid('none')}>
+                    <Minus className="mr-2 h-4 w-4" /> No Grid
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setGrid('math')}>
+                    <Grid3x3 className="mr-2 h-4 w-4" /> Math Grid
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setGrid('lines')}>
+                    <AlignJustify className="mr-2 h-4 w-4" /> Ruled Lines
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+
       </div>
     </div>
   );

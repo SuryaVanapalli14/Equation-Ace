@@ -47,12 +47,12 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
       ) : (
         <div className="space-y-6">
           <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Extracted Equation (OCR)</h3>
-            <p className="font-code text-lg bg-muted p-3 rounded-md min-h-[44px] break-all">{ocrText || '...'}</p>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Extracted Text (OCR)</h3>
+            <p className="font-code text-lg bg-muted p-3 rounded-md min-h-[44px] break-all whitespace-pre-wrap">{ocrText || '...'}</p>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">AI Corrected Equation</h3>
-            <p className="font-code text-lg bg-muted p-3 rounded-md min-h-[44px] break-all">{correctedText || '...'}</p>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">AI Corrected Text</h3>
+            <p className="font-code text-lg bg-muted p-3 rounded-md min-h-[44px] break-all whitespace-pre-wrap">{correctedText || '...'}</p>
           </div>
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Solution</h3>
@@ -73,7 +73,7 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
                   <AccordionContent>
                     <div className="space-y-3 font-code text-sm bg-muted p-4 rounded-b-md border-t-0 -mt-2">
                       {explanation.map((step, i) => (
-                        <p key={i} className="leading-relaxed">{step}</p>
+                        <p key={i} className="leading-relaxed whitespace-pre-wrap">{step}</p>
                       ))}
                     </div>
                   </AccordionContent>
