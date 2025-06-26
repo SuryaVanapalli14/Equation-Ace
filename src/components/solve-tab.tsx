@@ -322,7 +322,7 @@ export default function SolveTab() {
   const canSolve = !!file || isDrawing || !!textInput.trim();
 
   return (
-    <Card className="animate-in fade-in-0 duration-500">
+    <Card className="animate-in fade-in-0 duration-500 transition-shadow hover:shadow-lg hover:shadow-primary/20">
       <CardHeader>
         <CardTitle>Solve a Math Problem</CardTitle>
         <CardDescription>Upload an image, draw, or type a problem, then let AI solve it for you.</CardDescription>
@@ -332,7 +332,7 @@ export default function SolveTab() {
           
           {/* Left Column: Upload & Text */}
           <div className="flex flex-col gap-8 h-full">
-            <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg flex-1">
+            <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg flex-1 bg-background transition-colors hover:border-primary">
               <h3 className="text-lg font-medium flex items-center gap-2"><GalleryHorizontal className="w-5 h-5"/> Upload an Image</h3>
               {!originalImageUrl ? (
                 <label
@@ -364,7 +364,7 @@ export default function SolveTab() {
               )}
             </div>
 
-            <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg flex-1">
+            <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg flex-1 bg-background transition-colors hover:border-primary">
               <h3 className="text-lg font-medium flex items-center justify-center gap-2">
                 <Keyboard className="w-5 h-5"/> Or Type it Manually
               </h3>
@@ -379,7 +379,7 @@ export default function SolveTab() {
           </div>
           
           {/* Right Column: Draw */}
-          <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg h-full">
+          <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg h-full bg-background transition-colors hover:border-primary">
             <h3 className="text-lg font-medium flex items-center gap-2"><Pencil className="w-5 h-5"/> Or Draw It</h3>
             <Canvas ref={canvasRef} onInteraction={handleCanvasInteraction} />
           </div>
