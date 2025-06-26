@@ -184,7 +184,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
             <Button variant="outline" size="sm" onClick={clearCanvas}><Trash2 /> Clear</Button>
         </div>
 
-        <div className={`flex items-center gap-2 transition-opacity ${drawMode !== 'draw' ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div className={cn('flex items-center gap-2 transition-opacity', drawMode !== 'draw' ? 'opacity-50 pointer-events-none' : '')}>
             <Label htmlFor="stroke-color"><Palette /></Label>
             {colors.map(color => (
                 <button
@@ -192,11 +192,12 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
                     onClick={() => setStrokeColor(color)}
                     className={cn('w-6 h-6 rounded-full border-2 transition-transform', strokeColor === color ? 'scale-110 border-primary' : 'border-transparent')}
                     style={{ backgroundColor: color }}
+                    disabled={drawMode !== 'draw'}
                 />
             ))}
         </div>
         
-        <div className={`flex items-center gap-2 flex-grow min-w-[150px] transition-opacity ${drawMode !== 'draw' ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div className={cn('flex items-center gap-2 flex-grow min-w-[150px] transition-opacity', drawMode !== 'draw' ? 'opacity-50 pointer-events-none' : '')}>
             <Label htmlFor="stroke-width" className="text-sm whitespace-nowrap">Size</Label>
             <Slider
                 id="stroke-width"
