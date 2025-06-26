@@ -8,6 +8,7 @@ import { Label } from './ui/label';
 
 interface CanvasProps {
   className?: string;
+  onInteraction?: () => void;
 }
 
 export interface CanvasRef {
@@ -15,7 +16,7 @@ export interface CanvasRef {
   clear: () => void;
 }
 
-const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className }, ref) => {
+const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -93,6 +94,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className }, ref) => {
   };
 
   const startDrawing = (event: React.MouseEvent | React.TouchEvent) => {
+    onInteraction?.();
     if (ctx) {
       const { x, y } = getCoords(event);
       ctx.beginPath();
@@ -118,8 +120,8 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className }, ref) => {
   };
 
   return (
-    <div className='flex flex-col items-center gap-4 w-full'>
-      <div ref={containerRef} className='w-full max-w-xl aspect-[16/9]'>
+    <div className='flex flex-col items-center gap-4 w-full h-full'>
+      <div ref={containerRef} className='w-full flex-grow'>
         <canvas
             ref={canvasRef}
             className="border border-muted rounded-lg bg-white touch-none w-full h-full"
@@ -132,7 +134,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className }, ref) => {
             onTouchEnd={stopDrawing}
         />
        </div>
-      <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-xl">
+      <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
         <div className="flex items-center gap-2">
             <Button variant={drawMode === 'draw' ? 'secondary' : 'outline'} size="sm" onClick={() => setDrawMode('draw')}>
                 <Pencil className="mr-2 h-4 w-4" />
