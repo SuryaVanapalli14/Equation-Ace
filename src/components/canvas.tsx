@@ -27,16 +27,16 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
   const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>(null);
   const [drawMode, setDrawMode] = useState<'draw' | 'erase'>('draw');
   const [strokeWidth, setStrokeWidth] = useState(5);
-  const [strokeColor, setStrokeColor] = useState('black');
+  const [strokeColor, setStrokeColor] = useState('#FFFFFF');
   const [grid, setGrid] = useState<GridType>('none');
 
   const drawGrid = useCallback((gridType: GridType, context: CanvasRenderingContext2D, width: number, height: number) => {
     if (gridType === 'none') return;
     context.beginPath();
-    context.lineWidth = 1;
+    context.lineWidth = 0.5;
 
     if (gridType === 'math') {
-      context.strokeStyle = '#e0e0e0'; // light grey
+      context.strokeStyle = 'hsl(var(--border))';
       for (let x = 0; x <= width; x += 20) {
         context.moveTo(x, 0);
         context.lineTo(x, height);
@@ -46,14 +46,16 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
         context.lineTo(width, y);
       }
     } else if (gridType === 'lines') {
-      context.strokeStyle = '#a0c4ff'; // light blue
+      context.strokeStyle = 'hsl(var(--muted-foreground))';
       for (let y = 0; y <= height; y += 25) {
         context.moveTo(0, y);
         context.lineTo(width, y);
       }
-      context.strokeStyle = '#ffadad'; // light red
+      context.strokeStyle = 'hsl(var(--primary))';
+      context.globalAlpha = 0.5;
       context.moveTo(30, 0);
       context.lineTo(30, height);
+      context.globalAlpha = 1.0;
     }
     context.stroke();
   }, []);
@@ -61,8 +63,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
   const clearCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (canvas && ctx) {
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawGrid(grid, ctx, canvas.width, canvas.height);
     }
   }, [ctx, grid, drawGrid]);
@@ -76,13 +77,21 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
             for (let entry of entries) {
                 const { width, height } = entry.contentRect;
                 if (width > 0 && height > 0) {
+                  const context = canvas.getContext('2d');
+                  const tempCanvas = document.createElement('canvas');
+                  tempCanvas.width = canvas.width;
+                  tempCanvas.height = canvas.height;
+                  const tempCtx = tempCanvas.getContext('2d');
+                  if(tempCtx) {
+                    tempCtx.drawImage(canvas, 0, 0);
+                  }
+
                   canvas.width = width;
                   canvas.height = height;
-                  const context = canvas.getContext('2d');
+                  
                   if (context) {
                       setCtx(context);
-                      context.fillStyle = "white";
-                      context.fillRect(0, 0, canvas.width, canvas.height);
+                      context.drawImage(tempCanvas, 0, 0);
                       drawGrid(grid, context, width, height);
                   }
                 }
@@ -97,9 +106,16 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
     if (ctx) {
         ctx.lineCap = 'round';
         ctx.lineWidth = drawMode === 'erase' ? 25 : strokeWidth;
-        ctx.strokeStyle = drawMode === 'draw' ? strokeColor : 'white';
+        // In erase mode, we draw with a transparent color to "erase" content.
+        ctx.globalCompositeOperation = drawMode === 'erase' ? 'destination-out' : 'source-over';
     }
-  }, [ctx, drawMode, strokeWidth, strokeColor]);
+  }, [ctx, drawMode, strokeWidth]);
+  
+  useEffect(() => {
+    if (ctx) {
+        ctx.strokeStyle = strokeColor;
+    }
+  }, [ctx, strokeColor]);
 
   useEffect(() => {
     clearCanvas();
@@ -109,15 +125,29 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
     getDataURL: () => {
       const canvas = canvasRef.current;
       if (!canvas) return "";
+
+      const dataCanvas = document.createElement('canvas');
+      dataCanvas.width = canvas.width;
+      dataCanvas.height = canvas.height;
+      const dataCtx = dataCanvas.getContext('2d');
+      if(!dataCtx) return "";
+
+      // Draw a background that matches the theme
+      dataCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || '#0f172a';
+      dataCtx.fillRect(0,0, dataCanvas.width, dataCanvas.height);
+      dataCtx.drawImage(canvas, 0, 0);
+
+      // Add a margin to the final image
       const tempCanvas = document.createElement('canvas');
       const tempCtx = tempCanvas.getContext('2d');
       const margin = 20;
       tempCanvas.width = canvas.width + margin * 2;
       tempCanvas.height = canvas.height + margin * 2;
       if(!tempCtx) return "";
-      tempCtx.fillStyle = 'white';
+      tempCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || '#0f172a';
       tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-      tempCtx.drawImage(canvas, margin, margin);
+      tempCtx.drawImage(dataCanvas, margin, margin);
+
       return tempCanvas.toDataURL('image/png');
     },
     clear: clearCanvas,
@@ -160,14 +190,14 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
     }
   };
   
-  const colors = ['black', 'blue', 'red'];
+  const colors = ['#FFFFFF', '#3b82f6', '#ef4444'];
 
   return (
     <div className='flex flex-col items-center gap-4 w-full h-full'>
-      <div ref={containerRef} className='w-full flex-grow'>
+      <div ref={containerRef} className='w-full flex-grow rounded-lg overflow-hidden'>
         <canvas
             ref={canvasRef}
-            className="border border-muted rounded-lg bg-white touch-none w-full h-full"
+            className="border border-muted rounded-lg bg-card touch-none w-full h-full"
             onMouseDown={startDrawing}
             onMouseMove={draw}
             onMouseUp={stopDrawing}
@@ -184,7 +214,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
             <Button variant="outline" size="sm" onClick={clearCanvas}><Trash2 /> Clear</Button>
         </div>
 
-        <div className={cn('flex items-center gap-2 transition-opacity', drawMode !== 'draw' ? 'opacity-50 pointer-events-none' : '')}>
+        <div className={cn('flex items-center gap-2 transition-opacity', drawMode !== 'draw' ? 'opacity-50 pointer-events-none' : 'opacity-100')}>
             <Label htmlFor="stroke-color"><Palette /></Label>
             {colors.map(color => (
                 <button
@@ -197,7 +227,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
             ))}
         </div>
         
-        <div className={cn('flex items-center gap-2 flex-grow min-w-[150px] transition-opacity', drawMode !== 'draw' ? 'opacity-50 pointer-events-none' : '')}>
+        <div className={cn('flex items-center gap-2 flex-grow min-w-[150px] transition-opacity', drawMode !== 'draw' ? 'opacity-50 pointer-events-none' : 'opacity-100')}>
             <Label htmlFor="stroke-width" className="text-sm whitespace-nowrap">Size</Label>
             <Slider
                 id="stroke-width"

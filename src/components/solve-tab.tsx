@@ -274,7 +274,8 @@ export default function SolveTab() {
         } else if (activeInput === 'draw' && canvasRef.current) {
           finalImageDataUrl = canvasRef.current.getDataURL();
         } else if (activeInput === 'text') {
-          // No image to save for text input, or we can generate one. For now, let's not.
+          // For text input, we can generate an image of the text, or save without one.
+          // For consistency in the history tab, let's skip saving text-only for now.
         }
         
         if(finalImageDataUrl) {
@@ -292,8 +293,9 @@ export default function SolveTab() {
             createdAt: serverTimestamp(),
           });
           toast({ title: "Success!", description: "Equation solved and saved to your history." });
+        } else if (activeInput === 'text') {
+            toast({ title: "Equation Solved", description: "Text-only solutions are not saved to history yet." });
         } else {
-          // Handle saving text-only solutions if desired, maybe without an image URL
            toast({ title: "Equation Solved", description: "Log in to save your results to history." });
         }
       } else {
@@ -317,7 +319,7 @@ export default function SolveTab() {
   const canSolve = !!file || isDrawing || !!textInput.trim();
 
   return (
-    <Card>
+    <Card className="animate-in fade-in-0 duration-500">
       <CardHeader>
         <CardTitle>Solve a Math Problem</CardTitle>
         <CardDescription>Upload an image, draw, or type a problem, then let AI solve it for you.</CardDescription>
@@ -325,59 +327,60 @@ export default function SolveTab() {
       <CardContent className="space-y-6">
         <div className="grid md:grid-cols-2 gap-8 items-start">
           
-          {/* Left Column: Upload */}
-          <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg h-full">
-            <h3 className="text-lg font-medium flex items-center gap-2"><GalleryHorizontal className="w-5 h-5"/> Upload an Image</h3>
-            {!originalImageUrl ? (
-              <label
-                htmlFor="file-upload"
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                className="w-full cursor-pointer"
-              >
-                <div className={cn("flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg border-muted hover:border-primary transition-colors", isDragging && "border-primary bg-accent/50")}>
-                  <UploadCloud className="w-8 h-8 text-muted-foreground" />
-                  <span className="mt-2 text-sm text-muted-foreground">Click or drag and drop</span>
-                  <span className="text-xs text-muted-foreground">PNG or JPG</span>
-                </div>
-                <Input ref={fileInputRef} id="file-upload" type="file" className="hidden" onChange={handleFileChange} accept="image/png, image/jpeg, image/jpg" />
-              </label>
-            ) : (
-              <>
-                <div className="p-2 border rounded-lg bg-muted w-full">
-                  <ReactCrop crop={crop} onChange={(_, pc) => setCrop(pc)} onComplete={(c) => setCompletedCrop(c)} minHeight={50}>
-                    <img ref={imgRef} alt="Crop this image" data-ai-hint="mathematical equation" src={originalImageUrl} onLoad={onImageLoad} className="w-full" />
-                  </ReactCrop>
-                </div>
-                <Button variant="outline" onClick={handleRemoveImage} size="sm">
-                  <Trash2 className="mr-2 h-4 w-4" /> Remove Image
-                </Button>
-              </>
-            )}
+          {/* Left Column: Upload & Text */}
+          <div className="flex flex-col gap-8 h-full">
+            <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg flex-1">
+              <h3 className="text-lg font-medium flex items-center gap-2"><GalleryHorizontal className="w-5 h-5"/> Upload an Image</h3>
+              {!originalImageUrl ? (
+                <label
+                  htmlFor="file-upload"
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  className="w-full cursor-pointer"
+                >
+                  <div className={cn("flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg border-muted hover:border-primary transition-colors", isDragging && "border-primary bg-accent/10")}>
+                    <UploadCloud className="w-8 h-8 text-muted-foreground" />
+                    <span className="mt-2 text-sm text-muted-foreground">Click or drag and drop</span>
+                    <span className="text-xs text-muted-foreground">PNG or JPG</span>
+                  </div>
+                  <Input ref={fileInputRef} id="file-upload" type="file" className="hidden" onChange={handleFileChange} accept="image/png, image/jpeg, image/jpg" />
+                </label>
+              ) : (
+                <>
+                  <div className="p-2 border rounded-lg bg-muted/20 w-full">
+                    <ReactCrop crop={crop} onChange={(_, pc) => setCrop(pc)} onComplete={(c) => setCompletedCrop(c)} minHeight={50}>
+                      <img ref={imgRef} alt="Crop this image" data-ai-hint="mathematical equation" src={originalImageUrl} onLoad={onImageLoad} className="w-full" />
+                    </ReactCrop>
+                  </div>
+                  <Button variant="outline" onClick={handleRemoveImage} size="sm">
+                    <Trash2 className="mr-2 h-4 w-4" /> Remove Image
+                  </Button>
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg flex-1">
+              <h3 className="text-lg font-medium flex items-center justify-center gap-2">
+                <Keyboard className="w-5 h-5"/> Or Type it Manually
+              </h3>
+              <Textarea 
+                placeholder="Type your math problem or equation here... For example: 'If a train travels at 60 mph for 3 hours, how far does it travel?' or 'd/dx(sin(x^2))'"
+                value={textInput}
+                onChange={handleTextInputChange}
+                rows={6}
+                className="w-full h-full"
+              />
+            </div>
           </div>
           
           {/* Right Column: Draw */}
-          <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg h-full min-h-[350px]">
+          <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg h-full">
             <h3 className="text-lg font-medium flex items-center gap-2"><Pencil className="w-5 h-5"/> Or Draw It</h3>
             <Canvas ref={canvasRef} onInteraction={handleCanvasInteraction} />
           </div>
 
-        </div>
-        
-        {/* Text Input */}
-        <div className="pt-6 border-t">
-          <h3 className="text-lg font-medium text-center mb-4 flex items-center justify-center gap-2">
-            <Keyboard className="w-5 h-5"/> Or Type it Manually
-          </h3>
-          <Textarea 
-            placeholder="Type your math problem or equation here... For example: 'If a train travels at 60 mph for 3 hours, how far does it travel?' or 'd/dx(sin(x^2))'"
-            value={textInput}
-            onChange={handleTextInputChange}
-            rows={4}
-            className="max-w-4xl mx-auto"
-          />
         </div>
 
         <div className="flex flex-col items-center space-y-6 pt-6 border-t">

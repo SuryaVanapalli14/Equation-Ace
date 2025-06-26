@@ -4,7 +4,7 @@ import AuthButton from './auth-button';
 
 export default function Header() {
   return (
-    <header className="border-b border-border/40 backdrop-blur-lg sticky top-0 z-50 bg-background/95">
+    <header className="border-b border-border backdrop-blur-lg sticky top-0 z-50 bg-background/80">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2 text-2xl font-bold font-headline hover:text-primary transition-colors">

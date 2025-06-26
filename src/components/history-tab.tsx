@@ -72,7 +72,7 @@ export default function HistoryTab() {
   }
   
   return (
-    <div>
+    <div className="animate-in fade-in-0 duration-500">
       <h2 className="text-2xl font-bold mb-4">Your Equation History</h2>
       {equations.length === 0 ? (
         <Alert>
@@ -85,14 +85,14 @@ export default function HistoryTab() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {equations.map((eq) => (
-            <Card key={eq.id} className="flex flex-col">
+            <Card key={eq.id} className="flex flex-col transition-all duration-300 hover:scale-[1.03] hover:shadow-lg hover:shadow-primary/20">
               <CardHeader>
                 <div className="aspect-video relative w-full bg-muted rounded-lg overflow-hidden border">
                     <Image
                         src={eq.imageUrl}
                         alt="Equation image"
                         fill
-                        className="object-contain"
+                        className="object-contain p-2"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                 </div>
