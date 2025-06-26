@@ -76,6 +76,7 @@ export default function SolveTab() {
   const [activeInput, setActiveInput] = useState<'upload' | 'draw' | 'text' | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [inputImageDataUrl, setInputImageDataUrl] = useState<string | null>(null);
 
   // --- AI & Result State ---
   const [isLoading, setIsLoading] = useState(false);
@@ -92,6 +93,7 @@ export default function SolveTab() {
     setSolution(null);
     setError(null);
     setExplanation(null);
+    setInputImageDataUrl(null);
   };
 
   const handleRemoveImage = () => {
@@ -230,6 +232,7 @@ export default function SolveTab() {
     setActiveInput(source);
     setIsLoading(true);
     resetResults();
+    setInputImageDataUrl(imageDataUrl); // Set for download/export
 
     try {
       if (source === 'text') {
@@ -397,6 +400,7 @@ export default function SolveTab() {
               correctedText={correctedText}
               solution={solution}
               explanation={explanation}
+              inputImageDataUrl={inputImageDataUrl}
             />
           </div>
         </div>
