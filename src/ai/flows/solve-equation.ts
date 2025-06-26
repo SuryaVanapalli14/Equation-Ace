@@ -2,7 +2,7 @@
 /**
  * @fileOverview Solves a math equation, including algebraic, differential, and integral equations, from OCR text.
  *
- * - solveEquation - A function that takes OCR text as input and returns the solved equation.
+ * - solveEquation - A function that takes OCR text as input and returns the solved equation and a step-by-step explanation.
  * - SolveEquationInput - The input type for the solveEquation function.
  * - SolveEquationOutput - The return type for the solveEquation function.
  */
@@ -16,7 +16,14 @@ const SolveEquationInputSchema = z.object({
 export type SolveEquationInput = z.infer<typeof SolveEquationInputSchema>;
 
 const SolveEquationOutputSchema = z.object({
-  solvedResult: z.array(z.string()).describe('The solved result of the equation.'),
+  solvedResult: z
+    .array(z.string())
+    .describe('The final solved result of the equation.'),
+  explanation: z
+    .array(z.string())
+    .describe(
+      'A step-by-step explanation of how the solution was reached.'
+    ),
 });
 export type SolveEquationOutput = z.infer<typeof SolveEquationOutputSchema>;
 
@@ -44,7 +51,7 @@ Your task is to solve the equation or problem presented. Your capabilities shoul
     - Problems involving factorials (!).
     - Summation (Σ).
 
-Provide the final solved result. If the problem has multiple steps, show the main steps but focus on delivering a clear final answer.
+Provide the final solved result. Also, provide a detailed, step-by-step explanation for how you arrived at the solution.
 
 OCR Text: {{{ocrText}}}`,
 });

@@ -6,6 +6,7 @@ export interface Equation {
   ocrText: string;
   correctedText: string;
   solvedResult: string[];
+  explanation: string[];
   imageUrl: string;
   createdAt: Timestamp;
 }

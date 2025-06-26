@@ -11,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Image from 'next/image';
 import { KeyRound, Info } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
 
 export default function HistoryTab() {
   const { user, loading: authLoading } = useAuth();
@@ -77,7 +79,7 @@ export default function HistoryTab() {
             <Info className="h-4 w-4" />
             <AlertTitle>No History Found</AlertTitle>
             <AlertDescription>
-            You haven't solved any equations yet. Use the "Upload" or "Draw" tab to get started!
+            You haven't solved any equations yet. Use the "Solve" tab to get started!
             </AlertDescription>
         </Alert>
       ) : (
@@ -106,6 +108,18 @@ export default function HistoryTab() {
                         {eq.solvedResult.join(', ')}
                     </p>
                  </div>
+                 {eq.explanation && eq.explanation.length > 0 && (
+                    <Accordion type="single" collapsible className="w-full text-sm">
+                        <AccordionItem value={`explanation-${eq.id}`}>
+                            <AccordionTrigger className="py-2 text-xs hover:no-underline">View Explanation</AccordionTrigger>
+                            <AccordionContent>
+                                <div className="space-y-1 font-code bg-muted p-2 rounded text-xs border-t">
+                                    {eq.explanation.map((step, i) => <p key={i} className="leading-relaxed">{step}</p>)}
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+                )}
               </CardContent>
               <CardFooter>
                  <p className="text-xs text-muted-foreground">

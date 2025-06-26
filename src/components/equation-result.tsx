@@ -2,18 +2,20 @@
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Terminal, Lightbulb } from "lucide-react";
 
 interface EquationResultProps {
   ocrText: string | null;
   correctedText: string | null;
   solution: string[] | null;
+  explanation: string[] | null;
   error: string | null;
   isLoading: boolean;
 }
 
-export default function EquationResult({ ocrText, correctedText, solution, error, isLoading }: EquationResultProps) {
-  const hasResult = ocrText || correctedText || solution || error;
+export default function EquationResult({ ocrText, correctedText, solution, explanation, error, isLoading }: EquationResultProps) {
+  const hasResult = ocrText || correctedText || solution || explanation || error;
   
   if (!isLoading && !hasResult) {
     return null;
@@ -61,6 +63,23 @@ export default function EquationResult({ ocrText, correctedText, solution, error
                 <p className="text-muted-foreground text-lg font-normal">No solution found.</p>
               )}
             </div>
+            {explanation && explanation.length > 0 && (
+               <Accordion type="single" collapsible className="w-full mt-2">
+                <AccordionItem value="item-1">
+                  <AccordionTrigger className="text-sm hover:no-underline">
+                    <Lightbulb className="mr-2 h-4 w-4" />
+                    Show step-by-step explanation
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-3 font-code text-sm bg-muted p-4 rounded-b-md border-t-0 -mt-2">
+                      {explanation.map((step, i) => (
+                        <p key={i} className="leading-relaxed">{step}</p>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            )}
           </div>
         </div>
       )}

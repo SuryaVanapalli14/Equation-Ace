@@ -35,6 +35,7 @@ import { solveEquation } from "@/ai/flows/solve-equation";
 import { db, storage } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
+import { cn } from "@/lib/utils";
 
 // Helper to center the initial crop
 function centerAspectCrop(
@@ -73,6 +74,7 @@ export default function SolveTab() {
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [activeInput, setActiveInput] = useState<'upload' | 'draw' | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // --- AI & Result State ---
   const [isLoading, setIsLoading] = useState(false);
@@ -81,18 +83,20 @@ export default function SolveTab() {
   const [ocrText, setOcrText] = useState<string | null>(null);
   const [correctedText, setCorrectedText] = useState<string | null>(null);
   const [solution, setSolution] = useState<string[] | null>(null);
+  const [explanation, setExplanation] = useState<string[] | null>(null);
 
   const resetResults = () => {
     setOcrText(null);
     setCorrectedText(null);
     setSolution(null);
     setError(null);
+    setExplanation(null);
   };
-
-  // --- Upload Handlers ---
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
+  
+  // --- File & Upload Handlers ---
+  const processFile = (selectedFile: File) => {
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+    if (selectedFile && validTypes.includes(selectedFile.type)) {
       // Clear canvas and drawing state
       canvasRef.current?.clear();
       setIsDrawing(false);
@@ -105,8 +109,43 @@ export default function SolveTab() {
       };
       reader.readAsDataURL(selectedFile);
       resetResults();
+    } else {
+      toast({ title: "Invalid File Type", description: "Please upload a PNG or JPG file.", variant: "destructive" });
     }
   };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      processFile(selectedFile);
+    }
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFile(e.dataTransfer.files[0]);
+      e.dataTransfer.clearData();
+    }
+  };
+
 
   const handleRemoveImage = () => {
     setFile(null);
@@ -206,6 +245,7 @@ export default function SolveTab() {
 
       const solveResult = await solveEquation({ ocrText: correctedResult.correctedText });
       setSolution(solveResult.solvedResult);
+      setExplanation(solveResult.explanation);
       
       if (user && db && storage) {
         let finalImageDataUrl: string | null = null;
@@ -225,6 +265,7 @@ export default function SolveTab() {
             ocrText: ocrText,
             correctedText: correctedResult.correctedText,
             solvedResult: solveResult.solvedResult,
+            explanation: solveResult.explanation,
             imageUrl: downloadURL,
             createdAt: serverTimestamp(),
           });
@@ -263,13 +304,20 @@ export default function SolveTab() {
           <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg h-full">
             <h3 className="text-lg font-medium flex items-center gap-2"><GalleryHorizontal className="w-5 h-5"/> Upload an Image</h3>
             {!originalImageUrl ? (
-              <label htmlFor="file-upload" className="w-full cursor-pointer">
-                <div className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg border-muted hover:border-primary transition-colors">
+              <label
+                htmlFor="file-upload"
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                className="w-full cursor-pointer"
+              >
+                <div className={cn("flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg border-muted hover:border-primary transition-colors", isDragging && "border-primary bg-accent/50")}>
                   <UploadCloud className="w-8 h-8 text-muted-foreground" />
                   <span className="mt-2 text-sm text-muted-foreground">Click or drag and drop</span>
                   <span className="text-xs text-muted-foreground">PNG or JPG</span>
                 </div>
-                <Input ref={fileInputRef} id="file-upload" type="file" className="hidden" onChange={handleFileChange} accept="image/png, image/jpeg" />
+                <Input ref={fileInputRef} id="file-upload" type="file" className="hidden" onChange={handleFileChange} accept="image/png, image/jpeg, image/jpg" />
               </label>
             ) : (
               <>
@@ -306,6 +354,7 @@ export default function SolveTab() {
               ocrText={ocrText}
               correctedText={correctedText}
               solution={solution}
+              explanation={explanation}
             />
           </div>
         </div>
