@@ -11,12 +11,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, signOut, type AuthError } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { LogIn, LogOut } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AuthButton() {
   const { user, loading } = useAuth();
+  const { toast } = useToast();
 
   const handleSignIn = async () => {
     if (!auth) return;
@@ -24,7 +26,22 @@ export default function AuthButton() {
     try {
       await signInWithPopup(auth, provider);
     } catch (error) {
-      console.error("Error signing in with Google", error);
+      const authError = error as AuthError;
+      if (authError.code === 'auth/unauthorized-domain') {
+        toast({
+          variant: 'destructive',
+          title: 'Unauthorized Domain',
+          description: "This domain is not authorized for login. Please add it to your Firebase project's authorized domains list in the Authentication settings.",
+          duration: 15000,
+        });
+      } else {
+        console.error("Error signing in with Google", error);
+        toast({
+          variant: 'destructive',
+          title: 'Sign-in Error',
+          description: "An unexpected error occurred. Please try again or check the console.",
+        });
+      }
     }
   };
 
@@ -34,6 +51,11 @@ export default function AuthButton() {
       await signOut(auth);
     } catch (error) {
       console.error("Error signing out", error);
+      toast({
+        variant: 'destructive',
+        title: 'Sign-out Error',
+        description: 'Failed to sign out. Please try again.',
+      });
     }
   };
 
