@@ -153,42 +153,61 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
     clear: clearCanvas,
   }));
 
-  const getCoords = (event: React.MouseEvent | React.TouchEvent) => {
+  const getClampedCoords = (event: MouseEvent | TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
     const eventSource = 'touches' in event ? event.touches[0] : event;
+    
+    const x = eventSource.clientX - rect.left;
+    const y = eventSource.clientY - rect.top;
+
     return {
-        x: eventSource.clientX - rect.left,
-        y: eventSource.clientY - rect.top,
+        x: Math.max(0, Math.min(x, rect.width)),
+        y: Math.max(0, Math.min(y, rect.height)),
     };
   };
 
   const startDrawing = (event: React.MouseEvent | React.TouchEvent) => {
+    event.preventDefault();
     onInteraction?.();
     if (ctx) {
-      const { x, y } = getCoords(event);
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      setIsDrawing(true);
+        const { x, y } = getClampedCoords(event.nativeEvent);
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        setIsDrawing(true);
     }
   };
 
-  const draw = (event: React.MouseEvent | React.TouchEvent) => {
-    event.preventDefault();
-    if (isDrawing && ctx) {
-      const { x, y } = getCoords(event);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-    }
-  };
+  const draw = useCallback((event: MouseEvent | TouchEvent) => {
+    if (!isDrawing || !ctx) return;
+    // preventDefault is important for touchmove to prevent scrolling
+    event.preventDefault(); 
+    const { x, y } = getClampedCoords(event);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }, [isDrawing, ctx]);
 
-  const stopDrawing = () => {
-    if (ctx) {
-      ctx.closePath();
-      setIsDrawing(false);
-    }
-  };
+  const stopDrawing = useCallback(() => {
+    if (!isDrawing || !ctx) return;
+    ctx.closePath();
+    setIsDrawing(false);
+  }, [isDrawing, ctx]);
+
+  useEffect(() => {
+    // These listeners handle drawing outside the canvas bounds
+    window.addEventListener('mousemove', draw);
+    window.addEventListener('touchmove', draw, { passive: false });
+    window.addEventListener('mouseup', stopDrawing);
+    window.addEventListener('touchend', stopDrawing);
+
+    return () => {
+      window.removeEventListener('mousemove', draw);
+      window.removeEventListener('touchmove', draw);
+      window.removeEventListener('mouseup', stopDrawing);
+      window.removeEventListener('touchend', stopDrawing);
+    };
+  }, [draw, stopDrawing]);
   
   const colors = ['#FFFFFF', '#3b82f6', '#ef4444'];
 
@@ -199,12 +218,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(({ className, onInteraction },
             ref={canvasRef}
             className="border border-muted rounded-lg bg-card touch-none w-full h-full"
             onMouseDown={startDrawing}
-            onMouseMove={draw}
-            onMouseUp={stopDrawing}
-            onMouseLeave={stopDrawing}
             onTouchStart={startDrawing}
-            onTouchMove={draw}
-            onTouchEnd={stopDrawing}
         />
        </div>
       <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4 w-full">
