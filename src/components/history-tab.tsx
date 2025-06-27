@@ -13,7 +13,7 @@ import { KeyRound, Info, LineChart as LineChartIcon } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ChartContainer, ChartConfig, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, CartesianGrid, XAxis, YAxis, Line, Legend } from "recharts";
+import { LineChart, CartesianGrid, XAxis, YAxis, Line, Legend, ReferenceLine } from "recharts";
 
 
 const chartConfig = {
@@ -43,10 +43,11 @@ export default function HistoryTab() {
     }
 
     setLoading(true);
+    // Query without ordering to prevent missing index errors.
+    // We will sort on the client-side.
     const q = query(
       collection(db, "equations"), 
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
+      where("userId", "==", user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -54,9 +55,20 @@ export default function HistoryTab() {
       querySnapshot.forEach((doc) => {
         userEquations.push({ id: doc.id, ...doc.data() } as Equation);
       });
+      
+      // Sort equations by creation date, newest first.
+      userEquations.sort((a, b) => {
+        const aDate = a.createdAt?.toDate() ?? new Date(0);
+        const bDate = b.createdAt?.toDate() ?? new Date(0);
+        return bDate.getTime() - aDate.getTime();
+      });
+
       setEquations(userEquations);
       setLoading(false);
-    }, () => setLoading(false));
+    }, (error) => {
+      console.error("Error fetching equation history:", error);
+      setLoading(false)
+    });
 
     return () => unsubscribe();
   }, [user]);
@@ -139,6 +151,8 @@ export default function HistoryTab() {
                                         <CartesianGrid vertical={false} />
                                         <XAxis dataKey="x" tickLine={false} axisLine={false} tickMargin={8} fontSize={10} />
                                         <YAxis tickLine={false} axisLine={false} tickMargin={8} fontSize={10} />
+                                        <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                                        <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
                                         <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                                         <Line dataKey="y" type="monotone" stroke="var(--color-y)" strokeWidth={2} dot={false} />
                                       </LineChart>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -13,7 +13,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useTypingAnimation } from '@/hooks/use-typing-animation';
 import { ChartContainer, ChartConfig, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, CartesianGrid, XAxis, YAxis, Line, Legend } from "recharts";
+import { LineChart, CartesianGrid, XAxis, YAxis, Line, Legend, ReferenceLine } from "recharts";
 
 interface EquationResultProps {
   ocrText: string | null;
@@ -33,14 +33,16 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
+const TypingExplanation = ({ text }: { text: string }) => {
+    const animatedText = useTypingAnimation(text);
+    return <pre className="leading-relaxed whitespace-pre-wrap">{animatedText}</pre>;
+};
 
 export default function EquationResult({ ocrText, correctedText, solution, explanation, graphData, error, isLoading, inputImageDataUrl }: EquationResultProps) {
   const hasResult = ocrText || correctedText || solution || explanation || error || graphData;
   const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  
-  const fullExplanation = explanation ? explanation.join('\n\n') : "";
-  const animatedExplanation = useTypingAnimation(fullExplanation);
+  const [openAccordionItem, setOpenAccordionItem] = useState<string | null>(null);
 
   const handleCopyExplanation = () => {
     if (!explanation || explanation.length === 0) return;
@@ -88,8 +90,8 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
     element.style.display = 'block';
   
     try {
-      const canvas = await html2canvas(element, { 
-        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#0f172a',
+      const canvas = await html2canvas(element, {
+        backgroundColor: getComputedStyle(document.body).backgroundColor,
         scale: 2,
         useCORS: true,
       });
@@ -160,7 +162,7 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
                 <p className="text-muted-foreground text-lg font-normal">No solution found.</p>
               )}
             </div>
-            <Accordion type="single" collapsible className="w-full mt-2">
+            <Accordion type="single" collapsible className="w-full mt-2" onValueChange={setOpenAccordionItem}>
               {explanation && explanation.length > 0 && (
                   <AccordionItem value="explanation">
                     <AccordionTrigger className="text-sm hover:no-underline">
@@ -202,7 +204,7 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
                           </TooltipProvider>
                         </div>
                         <div className="space-y-3 font-code text-sm bg-muted p-4 rounded-b-md border-t-0 -mt-2">
-                           <pre className="leading-relaxed whitespace-pre-wrap">{animatedExplanation}</pre>
+                           {openAccordionItem === 'explanation' && <TypingExplanation text={explanation.join('\n\n')} />}
                         </div>
                       </div>
                     </AccordionContent>
@@ -232,6 +234,8 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
                               tickMargin={8}
                               tickFormatter={(value) => value.toFixed(1)}
                             />
+                            <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                            <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
                             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                              <Legend />
                             <Line dataKey="y" type="monotone" stroke="var(--color-y)" strokeWidth={2} dot={false} />
@@ -246,7 +250,7 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
         </div>
       )}
       
-      <div ref={printRef} style={{ display: 'none', width: '210mm', color: 'white', backgroundColor: '#09090b', padding: '10mm', fontFamily: 'monospace', fontSize: '12px' }}>
+      <div ref={printRef} className="bg-background text-foreground" style={{ display: 'none', width: '210mm', padding: '10mm', fontFamily: 'monospace', fontSize: '12px' }}>
           <style>{`
             @media print {
               body { -webkit-print-color-adjust: exact; }
@@ -254,31 +258,31 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
             }
           `}</style>
           <h1 style={{ fontSize: '24px', textAlign: 'center', marginBottom: '10px' }}>Equation Ace Solution</h1>
-          <p style={{borderBottom: '1px solid #333', paddingBottom: '10px', marginBottom: '10px'}}>Solved on: {new Date().toLocaleString()}</p>
+          <p style={{borderBottom: '1px solid hsl(var(--border))', paddingBottom: '10px', marginBottom: '10px'}}>Solved on: {new Date().toLocaleString()}</p>
           
           {inputImageDataUrl && (
               <div style={{ marginBottom: '20px' }}>
-                  <h2 style={{ fontSize: '16px', borderBottom: '1px solid #555', paddingBottom: '5px' }}>Problem Image:</h2>
-                  <img src={inputImageDataUrl} alt="User provided problem" style={{ maxWidth: '100%', border: '1px solid #ccc', marginTop: '10px', borderRadius: '4px' }} />
+                  <h2 style={{ fontSize: '16px', borderBottom: '1px solid hsl(var(--muted))', paddingBottom: '5px' }}>Problem Image:</h2>
+                  <img src={inputImageDataUrl} alt="User provided problem" style={{ maxWidth: '100%', border: '1px solid hsl(var(--border))', marginTop: '10px', borderRadius: '4px' }} />
               </div>
           )}
           <div style={{ marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '16px', borderBottom: '1px solid #555', paddingBottom: '5px' }}>User Input (OCR):</h2>
-            <pre style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', backgroundColor: '#1f1f1f', padding: '10px', borderRadius: '4px' }}>{ocrText || "N/A"}</pre>
+            <h2 style={{ fontSize: '16px', borderBottom: '1px solid hsl(var(--muted))', paddingBottom: '5px' }}>User Input (OCR):</h2>
+            <pre className="bg-muted text-foreground" style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', padding: '10px', borderRadius: '4px' }}>{ocrText || "N/A"}</pre>
           </div>
           <div style={{ marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '16px', borderBottom: '1px solid #555', paddingBottom: '5px' }}>Corrected Problem:</h2>
-            <pre style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', backgroundColor: '#1f1f1f', padding: '10px', borderRadius: '4px' }}>{correctedText || "N/A"}</pre>
+            <h2 style={{ fontSize: '16px', borderBottom: '1px solid hsl(var(--muted))', paddingBottom: '5px' }}>Corrected Problem:</h2>
+            <pre className="bg-muted text-foreground" style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', padding: '10px', borderRadius: '4px' }}>{correctedText || "N/A"}</pre>
           </div>
           <div style={{ marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '16px', borderBottom: '1px solid #555', paddingBottom: '5px' }}>Solution:</h2>
-            <pre style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', backgroundColor: '#1f1f1f', padding: '10px', borderRadius: '4px', fontWeight: 'bold' }}>{solution?.join('\n') || "N/A"}</pre>
+            <h2 style={{ fontSize: '16px', borderBottom: '1px solid hsl(var(--muted))', paddingBottom: '5px' }}>Solution:</h2>
+            <pre className="bg-muted text-primary" style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', padding: '10px', borderRadius: '4px', fontWeight: 'bold' }}>{solution?.join('\n') || "N/A"}</pre>
           </div>
            <div style={{ marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '16px', borderBottom: '1px solid #555', paddingBottom: '5px' }}>Step-by-step Explanation:</h2>
-            <pre style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', backgroundColor: '#1f1f1f', padding: '10px', borderRadius: '4px' }}>{explanation?.join('\n\n') || "N/A"}</pre>
+            <h2 style={{ fontSize: '16px', borderBottom: '1px solid hsl(var(--muted))', paddingBottom: '5px' }}>Step-by-step Explanation:</h2>
+            <pre className="bg-muted text-foreground" style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', padding: '10px', borderRadius: '4px' }}>{explanation?.join('\n\n') || "N/A"}</pre>
           </div>
-          <p style={{borderTop: '1px solid #333', paddingTop: '10px', marginTop: '20px', textAlign: 'center', fontSize: '10px' }}>Solved by Equation Ace</p>
+          <p style={{borderTop: '1px solid hsl(var(--border))', paddingTop: '10px', marginTop: '20px', textAlign: 'center', fontSize: '10px' }}>Solved by Equation Ace</p>
       </div>
 
     </div>
