@@ -1,4 +1,5 @@
 #Prerequisites
+
 A .env file is required to run the application.
 Follow these steps to get the required keys in the .env file :
 1. Go to https://firebase.google.com
