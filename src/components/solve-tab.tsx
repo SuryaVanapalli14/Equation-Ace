@@ -86,6 +86,8 @@ export default function SolveTab() {
   const [correctedText, setCorrectedText] = useState<string | null>(null);
   const [solution, setSolution] = useState<string[] | null>(null);
   const [explanation, setExplanation] = useState<string[] | null>(null);
+  const [graphData, setGraphData] = useState<any[] | null>(null);
+
 
   const resetResults = () => {
     setOcrText(null);
@@ -93,6 +95,7 @@ export default function SolveTab() {
     setSolution(null);
     setError(null);
     setExplanation(null);
+    setGraphData(null);
     setInputImageDataUrl(null);
   };
 
@@ -269,7 +272,8 @@ export default function SolveTab() {
       const solveResult = await solveEquation({ ocrText: correctedResult.correctedText });
       setSolution(solveResult.solvedResult);
       setExplanation(solveResult.explanation);
-      
+      setGraphData(solveResult.graphData?.isPlottable ? solveResult.graphData.data! : null);
+
       if (user && db && storage) {
         let finalImageDataUrl: string | null = null;
         if (activeInput === 'upload' && imgRef.current && completedCrop) {
@@ -294,6 +298,7 @@ export default function SolveTab() {
             explanation: solveResult.explanation,
             imageUrl: downloadURL,
             createdAt: serverTimestamp(),
+            graphData: solveResult.graphData ?? null,
           });
           toast({ title: "Success!", description: "Equation solved and saved to your history." });
         } else if (activeInput === 'text') {
@@ -339,7 +344,7 @@ export default function SolveTab() {
                   htmlFor="file-upload"
                   onDragEnter={handleDragEnter}
                   onDragLeave={handleDragLeave}
-                  onDragOver={handleDragOver}
+  onDragOver={handleDragOver}
                   onDrop={handleDrop}
                   className="w-full cursor-pointer"
                 >
@@ -400,6 +405,7 @@ export default function SolveTab() {
               correctedText={correctedText}
               solution={solution}
               explanation={explanation}
+              graphData={graphData}
               inputImageDataUrl={inputImageDataUrl}
             />
           </div>

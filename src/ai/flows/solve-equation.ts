@@ -21,9 +21,14 @@ const SolveEquationOutputSchema = z.object({
     .describe('The final solved result of the problem.'),
   explanation: z
     .array(z.string())
-    .describe(
-      'A step-by-step explanation of how the solution was reached.'
-    ),
+    .describe('A step-by-step explanation of how the solution was reached.'),
+  graphData: z.object({
+    isPlottable: z.boolean().describe('Whether the result is a plottable 2D function.'),
+    data: z.array(z.object({
+      x: z.number(),
+      y: z.number()
+    })).optional().describe('An array of {x, y} coordinates for plotting the function.')
+  }).optional().describe('Data for visualizing the equation if it is plottable.'),
 });
 export type SolveEquationOutput = z.infer<typeof SolveEquationOutputSchema>;
 
@@ -53,6 +58,8 @@ Your task is to understand the entire context and solve the problem presented. Y
     - Summation (Σ).
 
 Provide the final solved result. Also, provide a detailed, step-by-step explanation for how you arrived at the solution.
+
+If the problem results in a plottable 2D function (e.g., y = 3x + 2, f(x) = x^2 - 5), set graphData.isPlottable to true and provide an array of at least 20 {x, y} coordinate pairs to visualize the graph. Choose a sensible range for x that shows the key features of the graph (like intercepts or vertices). Otherwise, set graphData.isPlottable to false and do not provide data.
 
 OCR Text: {{{ocrText}}}`,
 });

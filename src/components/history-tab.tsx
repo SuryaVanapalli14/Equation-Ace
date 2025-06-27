@@ -9,9 +9,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from 'next/image';
-import { KeyRound, Info } from "lucide-react";
+import { KeyRound, Info, LineChart as LineChartIcon } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ChartContainer, ChartConfig, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { LineChart, CartesianGrid, XAxis, YAxis, Line, Legend } from "recharts";
+
+
+const chartConfig = {
+  y: {
+    label: "Value",
+    color: "hsl(var(--accent))",
+  },
+} satisfies ChartConfig;
 
 
 export default function HistoryTab() {
@@ -108,18 +118,36 @@ export default function HistoryTab() {
                         {eq.solvedResult.join(', ')}
                     </p>
                  </div>
-                 {eq.explanation && eq.explanation.length > 0 && (
-                    <Accordion type="single" collapsible className="w-full text-sm">
-                        <AccordionItem value={`explanation-${eq.id}`}>
-                            <AccordionTrigger className="py-2 text-xs hover:no-underline">View Explanation</AccordionTrigger>
-                            <AccordionContent>
-                                <div className="space-y-1 font-code bg-muted p-2 rounded text-xs border-t">
-                                    {eq.explanation.map((step, i) => <p key={i} className="leading-relaxed">{step}</p>)}
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                    </Accordion>
-                )}
+                  <Accordion type="single" collapsible className="w-full text-sm">
+                      {eq.explanation && eq.explanation.length > 0 && (
+                          <AccordionItem value={`explanation-${eq.id}`}>
+                              <AccordionTrigger className="py-2 text-xs hover:no-underline">View Explanation</AccordionTrigger>
+                              <AccordionContent>
+                                  <div className="space-y-1 font-code bg-muted p-2 rounded text-xs border-t">
+                                      {eq.explanation.map((step, i) => <p key={i} className="leading-relaxed whitespace-pre-wrap">{step}</p>)}
+                                  </div>
+                              </AccordionContent>
+                          </AccordionItem>
+                      )}
+                      {eq.graphData?.isPlottable && eq.graphData.data && (
+                         <AccordionItem value={`graph-${eq.id}`}>
+                              <AccordionTrigger className="py-2 text-xs hover:no-underline"><LineChartIcon className="mr-2 h-4 w-4" />View Graph</AccordionTrigger>
+                              <AccordionContent>
+                                  <div className="h-[250px] w-full bg-muted p-2 rounded-b-md">
+                                    <ChartContainer config={chartConfig} className="h-full w-full">
+                                      <LineChart accessibilityLayer data={eq.graphData.data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                                        <CartesianGrid vertical={false} />
+                                        <XAxis dataKey="x" tickLine={false} axisLine={false} tickMargin={8} fontSize={10} />
+                                        <YAxis tickLine={false} axisLine={false} tickMargin={8} fontSize={10} />
+                                        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                                        <Line dataKey="y" type="monotone" stroke="var(--color-y)" strokeWidth={2} dot={false} />
+                                      </LineChart>
+                                    </ChartContainer>
+                                  </div>
+                              </AccordionContent>
+                          </AccordionItem>
+                      )}
+                  </Accordion>
               </CardContent>
               <CardFooter>
                  <p className="text-xs text-muted-foreground">

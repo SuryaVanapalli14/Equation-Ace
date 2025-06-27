@@ -9,4 +9,8 @@ export interface Equation {
   explanation: string[];
   imageUrl: string;
   createdAt: Timestamp;
+  graphData?: {
+    isPlottable: boolean;
+    data?: { x: number; y: number }[];
+  } | null;
 }

@@ -8,25 +8,39 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { Terminal, Lightbulb, Copy, Download } from "lucide-react";
+import { Terminal, Lightbulb, Copy, Download, LineChart as LineChartIcon } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-
+import { useTypingAnimation } from '@/hooks/use-typing-animation';
+import { ChartContainer, ChartConfig, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { LineChart, CartesianGrid, XAxis, YAxis, Line, Legend } from "recharts";
 
 interface EquationResultProps {
   ocrText: string | null;
   correctedText: string | null;
   solution: string[] | null;
   explanation: string[] | null;
+  graphData: { x: number; y: number }[] | null;
   error: string | null;
   isLoading: boolean;
   inputImageDataUrl: string | null;
 }
 
-export default function EquationResult({ ocrText, correctedText, solution, explanation, error, isLoading, inputImageDataUrl }: EquationResultProps) {
-  const hasResult = ocrText || correctedText || solution || explanation || error;
+const chartConfig = {
+  y: {
+    label: "Value",
+    color: "hsl(var(--accent))",
+  },
+} satisfies ChartConfig;
+
+
+export default function EquationResult({ ocrText, correctedText, solution, explanation, graphData, error, isLoading, inputImageDataUrl }: EquationResultProps) {
+  const hasResult = ocrText || correctedText || solution || explanation || error || graphData;
   const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  
+  const fullExplanation = explanation ? explanation.join('\n\n') : "";
+  const animatedExplanation = useTypingAnimation(fullExplanation);
 
   const handleCopyExplanation = () => {
     if (!explanation || explanation.length === 0) return;
@@ -146,57 +160,88 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
                 <p className="text-muted-foreground text-lg font-normal">No solution found.</p>
               )}
             </div>
-            {explanation && explanation.length > 0 && (
-               <Accordion type="single" collapsible className="w-full mt-2">
-                <AccordionItem value="item-1">
-                  <AccordionTrigger className="text-sm hover:no-underline">
-                    <Lightbulb className="mr-2 h-4 w-4" />
-                    Show step-by-step explanation
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="relative group">
-                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopyExplanation}>
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Copy explanation</p>
-                            </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                               <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7">
-                                    <Download className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={handleDownloadTxt}>Download as .txt</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={handleDownloadPdf}>Download as .pdf</DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Download solution</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+            <Accordion type="single" collapsible className="w-full mt-2">
+              {explanation && explanation.length > 0 && (
+                  <AccordionItem value="explanation">
+                    <AccordionTrigger className="text-sm hover:no-underline">
+                      <Lightbulb className="mr-2 h-4 w-4" />
+                      Show step-by-step explanation
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="relative group">
+                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopyExplanation}>
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Copy explanation</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                                      <Download className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={handleDownloadTxt}>Download as .txt</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={handleDownloadPdf}>Download as .pdf</DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Download solution</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <div className="space-y-3 font-code text-sm bg-muted p-4 rounded-b-md border-t-0 -mt-2">
+                           <pre className="leading-relaxed whitespace-pre-wrap">{animatedExplanation}</pre>
+                        </div>
                       </div>
-                      <div className="space-y-3 font-code text-sm bg-muted p-4 rounded-b-md border-t-0 -mt-2">
-                        {explanation.map((step, i) => (
-                          <p key={i} className="leading-relaxed whitespace-pre-wrap">{step}</p>
-                        ))}
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            )}
+                    </AccordionContent>
+                  </AccordionItem>
+              )}
+              {graphData && graphData.length > 0 && (
+                <AccordionItem value="graph">
+                    <AccordionTrigger className="text-sm hover:no-underline">
+                      <LineChartIcon className="mr-2 h-4 w-4" />
+                      Show Graph Visualization
+                    </AccordionTrigger>
+                    <AccordionContent>
+                       <div className="h-[350px] w-full bg-muted p-4 rounded-b-md">
+                         <ChartContainer config={chartConfig} className="h-full w-full">
+                          <LineChart accessibilityLayer data={graphData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                            <CartesianGrid vertical={false} />
+                            <XAxis
+                              dataKey="x"
+                              tickLine={false}
+                              axisLine={false}
+                              tickMargin={8}
+                              tickFormatter={(value) => value.toFixed(1)}
+                            />
+                            <YAxis
+                              tickLine={false}
+                              axisLine={false}
+                              tickMargin={8}
+                              tickFormatter={(value) => value.toFixed(1)}
+                            />
+                            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                             <Legend />
+                            <Line dataKey="y" type="monotone" stroke="var(--color-y)" strokeWidth={2} dot={false} />
+                          </LineChart>
+                        </ChartContainer>
+                       </div>
+                    </AccordionContent>
+                  </AccordionItem>
+              )}
+            </Accordion>
           </div>
         </div>
       )}
