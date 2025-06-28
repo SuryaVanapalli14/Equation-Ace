@@ -12,89 +12,7 @@ import Image from 'next/image';
 import { KeyRound, Info, LineChart as LineChartIcon } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import * as math from 'mathjs';
-import dynamic from "next/dynamic";
-
-const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
-
-interface PlotlyChartProps {
-  functionStr: string;
-  className?: string;
-}
-
-const PlotlyChart = ({ functionStr, className }: PlotlyChartProps) => {
-  const [plotState, setPlotState] = useState<{data: any[], layout: any} | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    try {
-      if (!functionStr) return;
-      const compiledExpr = math.compile(functionStr);
-      const xValues = math.range(-10, 10.5, 0.5).toArray() as number[];
-      const yValues = xValues.map(x => compiledExpr.evaluate({ x }));
-      
-      const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
-      const mutedColor = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim();
-      const foregroundColor = getComputedStyle(document.documentElement).getPropertyValue('--foreground').trim();
-      const mutedForegroundColor = getComputedStyle(document.documentElement).getPropertyValue('--muted-foreground').trim();
-
-      setPlotState({
-        data: [{
-          x: xValues,
-          y: yValues,
-          type: 'scatter',
-          mode: 'lines',
-          line: { 
-            color: `hsl(${primaryColor})`,
-            width: 2 
-          },
-        }],
-        layout: {
-          autosize: true,
-          font: {
-            color: `hsl(${foregroundColor})`,
-            size: 10,
-          },
-          xaxis: {
-            gridcolor: `hsl(${mutedForegroundColor})`,
-            zerolinecolor: `hsl(${foregroundColor})`,
-            zerolinewidth: 1
-          },
-          yaxis: {
-            gridcolor: `hsl(${mutedForegroundColor})`,
-            zerolinecolor: `hsl(${foregroundColor})`,
-            zerolinewidth: 1
-          },
-          plot_bgcolor: `hsl(${mutedColor})`,
-          paper_bgcolor: `hsl(${mutedColor})`,
-          margin: { l: 25, r: 25, b: 25, t: 25 },
-        }
-      });
-      setError(null);
-    } catch (e) {
-      console.error('Plotting Error:', e);
-      setError('Could not plot the function. Invalid expression.');
-      setPlotState(null);
-    }
-  }, [functionStr]);
-
-  if (error) {
-    return <div className="flex items-center justify-center h-full text-destructive text-xs">{error}</div>;
-  }
-
-  if (!plotState) {
-    return <div className="flex items-center justify-center h-full text-xs">Generating graph...</div>;
-  }
-
-  return (
-    <Plot
-      data={plotState.data}
-      layout={plotState.layout}
-      config={{ responsive: true, displaylogo: false }}
-      className={className || 'w-full h-full'}
-    />
-  );
-};
+import PlotlyChart from "./plotly-chart";
 
 
 export default function HistoryTab() {
@@ -219,7 +137,7 @@ export default function HistoryTab() {
                               <AccordionTrigger className="py-2 text-xs hover:no-underline"><LineChartIcon className="mr-2 h-4 w-4" />View Graph</AccordionTrigger>
                               <AccordionContent>
                                   <div className="h-[250px] w-full bg-muted p-2 rounded-b-md">
-                                    <PlotlyChart functionStr={eq.graphData.functionStr} />
+                                    <PlotlyChart functionStr={eq.graphData.functionStr} isHistory={true} />
                                   </div>
                               </AccordionContent>
                           </AccordionItem>

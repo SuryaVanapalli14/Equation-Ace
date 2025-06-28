@@ -12,10 +12,7 @@ import { Terminal, Lightbulb, Copy, Download, LineChart as LineChartIcon } from 
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useTypingAnimation } from '@/hooks/use-typing-animation';
-import * as math from 'mathjs';
-import dynamic from "next/dynamic";
-
-const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
+import PlotlyChart from "./plotly-chart";
 
 interface EquationResultProps {
   ocrText: string | null;
@@ -27,86 +24,6 @@ interface EquationResultProps {
   isLoading: boolean;
   inputImageDataUrl: string | null;
 }
-
-interface PlotlyChartProps {
-  functionStr: string;
-  className?: string;
-}
-
-const PlotlyChart = ({ functionStr, className }: PlotlyChartProps) => {
-  const [plotState, setPlotState] = useState<{data: any[], layout: any} | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    try {
-      if (!functionStr) return;
-      const compiledExpr = math.compile(functionStr);
-      const xValues = math.range(-10, 10.5, 0.5).toArray() as number[];
-      const yValues = xValues.map(x => compiledExpr.evaluate({ x }));
-      
-      const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
-      const mutedColor = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim();
-      const foregroundColor = getComputedStyle(document.documentElement).getPropertyValue('--foreground').trim();
-      const mutedForegroundColor = getComputedStyle(document.documentElement).getPropertyValue('--muted-foreground').trim();
-
-      setPlotState({
-        data: [{
-          x: xValues,
-          y: yValues,
-          type: 'scatter',
-          mode: 'lines',
-          line: { 
-            color: `hsl(${primaryColor})`,
-            width: 3 
-          },
-        }],
-        layout: {
-          title: `Plot of y = ${functionStr}`,
-          autosize: true,
-          font: {
-            color: `hsl(${foregroundColor})`
-          },
-          xaxis: {
-            gridcolor: `hsl(${mutedForegroundColor})`,
-            zerolinecolor: `hsl(${foregroundColor})`,
-            zerolinewidth: 1.5
-          },
-          yaxis: {
-            gridcolor: `hsl(${mutedForegroundColor})`,
-            zerolinecolor: `hsl(${foregroundColor})`,
-            zerolinewidth: 1.5
-          },
-          plot_bgcolor: `hsl(${mutedColor})`,
-          paper_bgcolor: `hsl(${mutedColor})`,
-          margin: { l: 40, r: 40, b: 40, t: 80 },
-        }
-      });
-      setError(null);
-    } catch (e) {
-      console.error('Plotting Error:', e);
-      setError('Could not plot the function. Invalid expression provided by AI.');
-      setPlotState(null);
-    }
-  }, [functionStr]);
-
-  if (error) {
-    return <div className="flex items-center justify-center h-full text-destructive">{error}</div>;
-  }
-
-  if (!plotState) {
-    return <div className="flex items-center justify-center h-full">Generating graph...</div>;
-  }
-
-  return (
-    <Plot
-      data={plotState.data}
-      layout={plotState.layout}
-      config={{ responsive: true, displaylogo: false }}
-      className={className || 'w-full h-full'}
-    />
-  );
-};
-
 
 const TypingExplanation = ({ text }: { text: string }) => {
     const animatedText = useTypingAnimation(text);
