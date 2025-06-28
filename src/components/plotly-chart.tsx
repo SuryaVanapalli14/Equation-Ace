@@ -20,7 +20,8 @@ const PlotlyChart = ({ functionStr, className, isHistory = false }: PlotlyChartP
     try {
       if (!functionStr) return;
       const compiledExpr = math.compile(functionStr);
-      const xValues = math.range(-10, 10.5, 0.5).toArray() as number[];
+      // Increased the number of points for a smoother curve by reducing the step value.
+      const xValues = math.range(-10, 10.1, 0.1).toArray() as number[];
       const yValues = xValues.map(x => compiledExpr.evaluate({ x }));
       
       const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
