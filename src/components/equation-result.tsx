@@ -35,6 +35,15 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
   const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [openAccordionItem, setOpenAccordionItem] = useState<string | null>(null);
+  const [plotRevision, setPlotRevision] = useState(0);
+
+  const handleAccordionChange = (value: string) => {
+    setOpenAccordionItem(value);
+    if (value === 'graph') {
+      // Use a timeout to ensure the plot redraws after the container is visible.
+      setTimeout(() => setPlotRevision(r => r + 1), 0);
+    }
+  }
 
   const handleCopyExplanation = () => {
     if (!explanation || explanation.length === 0) return;
@@ -157,7 +166,7 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
                 <p className="text-muted-foreground text-lg font-normal">No solution found.</p>
               )}
             </div>
-            <Accordion type="single" collapsible className="w-full mt-2" onValueChange={setOpenAccordionItem}>
+            <Accordion type="single" collapsible className="w-full mt-2" onValueChange={handleAccordionChange}>
               {explanation && explanation.length > 0 && (
                   <AccordionItem value="explanation">
                     <AccordionTrigger className="text-sm hover:no-underline">
@@ -213,7 +222,7 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
                     </AccordionTrigger>
                     <AccordionContent forceMount>
                        <div className="h-[400px] w-full bg-muted p-4 rounded-b-md">
-                         <PlotlyChart functionStr={graphData.functionStr} />
+                         <PlotlyChart functionStr={graphData.functionStr} revision={plotRevision} />
                        </div>
                     </AccordionContent>
                   </AccordionItem>

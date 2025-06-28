@@ -10,9 +10,10 @@ interface PlotlyChartProps {
   functionStr: string;
   className?: string;
   isHistory?: boolean;
+  revision?: number;
 }
 
-const PlotlyChart = ({ functionStr, className, isHistory = false }: PlotlyChartProps) => {
+const PlotlyChart = ({ functionStr, className, isHistory = false, revision }: PlotlyChartProps) => {
   const [plotState, setPlotState] = useState<{data: any[], layout: any} | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,6 +87,7 @@ const PlotlyChart = ({ functionStr, className, isHistory = false }: PlotlyChartP
       layout={plotState.layout}
       config={{ responsive: true, displaylogo: false }}
       className={className || 'w-full h-full'}
+      revision={revision}
     />
   );
 };
