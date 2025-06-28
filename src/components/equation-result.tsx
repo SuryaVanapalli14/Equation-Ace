@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -12,26 +12,99 @@ import { Terminal, Lightbulb, Copy, Download, LineChart as LineChartIcon } from 
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useTypingAnimation } from '@/hooks/use-typing-animation';
-import { ChartContainer, ChartConfig, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, CartesianGrid, XAxis, YAxis, Line, Legend, ReferenceLine } from "recharts";
+import Plot from 'react-plotly.js';
+import * as math from 'mathjs';
 
 interface EquationResultProps {
   ocrText: string | null;
   correctedText: string | null;
   solution: string[] | null;
   explanation: string[] | null;
-  graphData: { x: number; y: number }[] | null;
+  graphData: { isPlottable: boolean; functionStr?: string } | null;
   error: string | null;
   isLoading: boolean;
   inputImageDataUrl: string | null;
 }
 
-const chartConfig = {
-  y: {
-    label: "Value",
-    color: "hsl(var(--accent))",
-  },
-} satisfies ChartConfig;
+interface PlotlyChartProps {
+  functionStr: string;
+  className?: string;
+}
+
+const PlotlyChart = ({ functionStr, className }: PlotlyChartProps) => {
+  const [plotState, setPlotState] = useState<{data: any[], layout: any} | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      if (!functionStr) return;
+      const compiledExpr = math.compile(functionStr);
+      const xValues = math.range(-10, 10.5, 0.5).toArray() as number[];
+      const yValues = xValues.map(x => compiledExpr.evaluate({ x }));
+      
+      const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
+      const mutedColor = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim();
+      const foregroundColor = getComputedStyle(document.documentElement).getPropertyValue('--foreground').trim();
+      const mutedForegroundColor = getComputedStyle(document.documentElement).getPropertyValue('--muted-foreground').trim();
+
+      setPlotState({
+        data: [{
+          x: xValues,
+          y: yValues,
+          type: 'scatter',
+          mode: 'lines',
+          line: { 
+            color: `hsl(${primaryColor})`,
+            width: 3 
+          },
+        }],
+        layout: {
+          title: `Plot of y = ${functionStr}`,
+          autosize: true,
+          font: {
+            color: `hsl(${foregroundColor})`
+          },
+          xaxis: {
+            gridcolor: `hsl(${mutedForegroundColor})`,
+            zerolinecolor: `hsl(${foregroundColor})`,
+            zerolinewidth: 1.5
+          },
+          yaxis: {
+            gridcolor: `hsl(${mutedForegroundColor})`,
+            zerolinecolor: `hsl(${foregroundColor})`,
+            zerolinewidth: 1.5
+          },
+          plot_bgcolor: `hsl(${mutedColor})`,
+          paper_bgcolor: `hsl(${mutedColor})`,
+          margin: { l: 40, r: 40, b: 40, t: 80 },
+        }
+      });
+      setError(null);
+    } catch (e) {
+      console.error('Plotting Error:', e);
+      setError('Could not plot the function. Invalid expression provided by AI.');
+      setPlotState(null);
+    }
+  }, [functionStr]);
+
+  if (error) {
+    return <div className="flex items-center justify-center h-full text-destructive">{error}</div>;
+  }
+
+  if (!plotState) {
+    return <div className="flex items-center justify-center h-full">Generating graph...</div>;
+  }
+
+  return (
+    <Plot
+      data={plotState.data}
+      layout={plotState.layout}
+      config={{ responsive: true, displaylogo: false }}
+      className={className || 'w-full h-full'}
+    />
+  );
+};
+
 
 const TypingExplanation = ({ text }: { text: string }) => {
     const animatedText = useTypingAnimation(text);
@@ -88,10 +161,13 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
     element.style.left = '-9999px';
     element.style.top = '-9999px';
     element.style.display = 'block';
+    
+    // Get background color from CSS var
+    const darkBg = getComputedStyle(document.documentElement).getPropertyValue('--background').trim();
   
     try {
       const canvas = await html2canvas(element, {
-        backgroundColor: getComputedStyle(document.body).backgroundColor,
+        backgroundColor: `hsl(${darkBg})`,
         scale: 2,
         useCORS: true,
       });
@@ -210,37 +286,15 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
                     </AccordionContent>
                   </AccordionItem>
               )}
-              {graphData && graphData.length > 0 && (
+              {graphData?.isPlottable && graphData.functionStr && (
                 <AccordionItem value="graph">
                     <AccordionTrigger className="text-sm hover:no-underline">
                       <LineChartIcon className="mr-2 h-4 w-4" />
                       Show Graph Visualization
                     </AccordionTrigger>
                     <AccordionContent>
-                       <div className="h-[350px] w-full bg-muted p-4 rounded-b-md">
-                         <ChartContainer config={chartConfig} className="h-full w-full">
-                          <LineChart accessibilityLayer data={graphData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                            <CartesianGrid vertical={false} />
-                            <XAxis
-                              dataKey="x"
-                              tickLine={false}
-                              axisLine={false}
-                              tickMargin={8}
-                              tickFormatter={(value) => value.toFixed(1)}
-                            />
-                            <YAxis
-                              tickLine={false}
-                              axisLine={false}
-                              tickMargin={8}
-                              tickFormatter={(value) => value.toFixed(1)}
-                            />
-                            <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-                            <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-                            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                             <Legend />
-                            <Line dataKey="y" type="monotone" stroke="var(--color-y)" strokeWidth={2} dot={false} />
-                          </LineChart>
-                        </ChartContainer>
+                       <div className="h-[400px] w-full bg-muted p-4 rounded-b-md">
+                         <PlotlyChart functionStr={graphData.functionStr} />
                        </div>
                     </AccordionContent>
                   </AccordionItem>

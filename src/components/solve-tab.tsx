@@ -86,7 +86,7 @@ export default function SolveTab() {
   const [correctedText, setCorrectedText] = useState<string | null>(null);
   const [solution, setSolution] = useState<string[] | null>(null);
   const [explanation, setExplanation] = useState<string[] | null>(null);
-  const [graphData, setGraphData] = useState<any[] | null>(null);
+  const [graphData, setGraphData] = useState<{ isPlottable: boolean; functionStr?: string; } | null>(null);
 
 
   const resetResults = () => {
@@ -272,7 +272,7 @@ export default function SolveTab() {
       const solveResult = await solveEquation({ ocrText: correctedResult.correctedText });
       setSolution(solveResult.solvedResult);
       setExplanation(solveResult.explanation);
-      setGraphData(solveResult.graphData?.isPlottable ? solveResult.graphData.data! : null);
+      setGraphData(solveResult.graphData?.isPlottable ? solveResult.graphData : null);
 
       if (user && db && storage) {
         let finalImageDataUrl: string | null = null;

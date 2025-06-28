@@ -11,6 +11,6 @@ export interface Equation {
   createdAt: Timestamp;
   graphData?: {
     isPlottable: boolean;
-    data?: { x: number; y: number }[];
+    functionStr?: string;
   } | null;
 }

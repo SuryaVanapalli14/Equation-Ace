@@ -12,16 +12,87 @@ import Image from 'next/image';
 import { KeyRound, Info, LineChart as LineChartIcon } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ChartContainer, ChartConfig, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, CartesianGrid, XAxis, YAxis, Line, Legend, ReferenceLine } from "recharts";
+import Plot from 'react-plotly.js';
+import * as math from 'mathjs';
 
+interface PlotlyChartProps {
+  functionStr: string;
+  className?: string;
+}
 
-const chartConfig = {
-  y: {
-    label: "Value",
-    color: "hsl(var(--accent))",
-  },
-} satisfies ChartConfig;
+const PlotlyChart = ({ functionStr, className }: PlotlyChartProps) => {
+  const [plotState, setPlotState] = useState<{data: any[], layout: any} | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      if (!functionStr) return;
+      const compiledExpr = math.compile(functionStr);
+      const xValues = math.range(-10, 10.5, 0.5).toArray() as number[];
+      const yValues = xValues.map(x => compiledExpr.evaluate({ x }));
+      
+      const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
+      const mutedColor = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim();
+      const foregroundColor = getComputedStyle(document.documentElement).getPropertyValue('--foreground').trim();
+      const mutedForegroundColor = getComputedStyle(document.documentElement).getPropertyValue('--muted-foreground').trim();
+
+      setPlotState({
+        data: [{
+          x: xValues,
+          y: yValues,
+          type: 'scatter',
+          mode: 'lines',
+          line: { 
+            color: `hsl(${primaryColor})`,
+            width: 2 
+          },
+        }],
+        layout: {
+          autosize: true,
+          font: {
+            color: `hsl(${foregroundColor})`,
+            size: 10,
+          },
+          xaxis: {
+            gridcolor: `hsl(${mutedForegroundColor})`,
+            zerolinecolor: `hsl(${foregroundColor})`,
+            zerolinewidth: 1
+          },
+          yaxis: {
+            gridcolor: `hsl(${mutedForegroundColor})`,
+            zerolinecolor: `hsl(${foregroundColor})`,
+            zerolinewidth: 1
+          },
+          plot_bgcolor: `hsl(${mutedColor})`,
+          paper_bgcolor: `hsl(${mutedColor})`,
+          margin: { l: 25, r: 25, b: 25, t: 25 },
+        }
+      });
+      setError(null);
+    } catch (e) {
+      console.error('Plotting Error:', e);
+      setError('Could not plot the function. Invalid expression.');
+      setPlotState(null);
+    }
+  }, [functionStr]);
+
+  if (error) {
+    return <div className="flex items-center justify-center h-full text-destructive text-xs">{error}</div>;
+  }
+
+  if (!plotState) {
+    return <div className="flex items-center justify-center h-full text-xs">Generating graph...</div>;
+  }
+
+  return (
+    <Plot
+      data={plotState.data}
+      layout={plotState.layout}
+      config={{ responsive: true, displaylogo: false }}
+      className={className || 'w-full h-full'}
+    />
+  );
+};
 
 
 export default function HistoryTab() {
@@ -141,22 +212,12 @@ export default function HistoryTab() {
                               </AccordionContent>
                           </AccordionItem>
                       )}
-                      {eq.graphData?.isPlottable && eq.graphData.data && (
+                      {eq.graphData?.isPlottable && eq.graphData.functionStr && (
                          <AccordionItem value={`graph-${eq.id}`}>
                               <AccordionTrigger className="py-2 text-xs hover:no-underline"><LineChartIcon className="mr-2 h-4 w-4" />View Graph</AccordionTrigger>
                               <AccordionContent>
                                   <div className="h-[250px] w-full bg-muted p-2 rounded-b-md">
-                                    <ChartContainer config={chartConfig} className="h-full w-full">
-                                      <LineChart accessibilityLayer data={eq.graphData.data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                                        <CartesianGrid vertical={false} />
-                                        <XAxis dataKey="x" tickLine={false} axisLine={false} tickMargin={8} fontSize={10} />
-                                        <YAxis tickLine={false} axisLine={false} tickMargin={8} fontSize={10} />
-                                        <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-                                        <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-                                        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                                        <Line dataKey="y" type="monotone" stroke="var(--color-y)" strokeWidth={2} dot={false} />
-                                      </LineChart>
-                                    </ChartContainer>
+                                    <PlotlyChart functionStr={eq.graphData.functionStr} />
                                   </div>
                               </AccordionContent>
                           </AccordionItem>
