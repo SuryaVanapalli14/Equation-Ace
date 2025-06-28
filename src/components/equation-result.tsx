@@ -211,7 +211,7 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
                       <LineChartIcon className="mr-2 h-4 w-4" />
                       Show Graph Visualization
                     </AccordionTrigger>
-                    <AccordionContent>
+                    <AccordionContent forceMount>
                        <div className="h-[400px] w-full bg-muted p-4 rounded-b-md">
                          <PlotlyChart functionStr={graphData.functionStr} />
                        </div>
