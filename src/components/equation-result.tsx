@@ -12,8 +12,10 @@ import { Terminal, Lightbulb, Copy, Download, LineChart as LineChartIcon } from 
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useTypingAnimation } from '@/hooks/use-typing-animation';
-import Plot from 'react-plotly.js';
 import * as math from 'mathjs';
+import dynamic from "next/dynamic";
+
+const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 interface EquationResultProps {
   ocrText: string | null;

@@ -12,8 +12,10 @@ import Image from 'next/image';
 import { KeyRound, Info, LineChart as LineChartIcon } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import Plot from 'react-plotly.js';
 import * as math from 'mathjs';
+import dynamic from "next/dynamic";
+
+const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 interface PlotlyChartProps {
   functionStr: string;
