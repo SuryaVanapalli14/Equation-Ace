@@ -1,3 +1,4 @@
+
 "use client";
 
 import Header from '@/components/header';
@@ -5,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SolveTab from '@/components/solve-tab';
 import HistoryTab from '@/components/history-tab';
 import { Button } from '@/components/ui/button';
-import { UploadCloud, Pencil, Lightbulb, LineChart, Github, Twitter, Instagram } from "lucide-react";
+import { UploadCloud, Pencil, Lightbulb, LineChart, Github, Twitter, Instagram, Sigma } from "lucide-react";
+import Image from 'next/image';
 
 export default function Home() {
   const handleScrollToSolver = () => {
@@ -40,8 +42,24 @@ export default function Home() {
       <Header />
       <main className="flex-grow overflow-y-auto">
         {/* Hero Section */}
-        <section className="bg-background text-center py-20 md:py-32">
-          <div className="container mx-auto px-4">
+        <section className="relative text-center py-20 md:py-32 overflow-hidden">
+          <div className="absolute inset-0 z-0">
+            <Image
+              src="https://placehold.co/1920x1080.png"
+              alt="Abstract background"
+              data-ai-hint="abstract geometric"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+          </div>
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="flex justify-center mb-6">
+              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20">
+                <Sigma className="w-12 h-12 text-primary" />
+              </div>
+            </div>
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
               Solve Math, Instantly
             </h1>
