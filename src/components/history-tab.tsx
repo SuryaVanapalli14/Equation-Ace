@@ -144,7 +144,7 @@ export default function HistoryTab() {
                       {eq.graphData?.isPlottable && eq.graphData.functionStr && (
                          <AccordionItem value={`graph-${eq.id}`}>
                               <AccordionTrigger className="py-2 text-xs hover:no-underline"><LineChartIcon className="mr-2 h-4 w-4" />View Graph</AccordionTrigger>
-                              <AccordionContent forceMount>
+                              <AccordionContent>
                                   <div className="h-[250px] w-full bg-muted p-2 rounded-b-md">
                                     <PlotlyChart functionStr={eq.graphData.functionStr} isHistory={true} revision={plotRevisions[eq.id]} />
                                   </div>

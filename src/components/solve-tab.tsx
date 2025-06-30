@@ -210,6 +210,54 @@ export default function SolveTab() {
     return canvas.toDataURL('image/png');
   }
 
+  const solveProblem = async (problem: string, currentActiveInput: 'upload' | 'draw' | 'text' | null) => {
+    setIsLoading(true);
+    try {
+      const solveResult = await solveEquation({ ocrText: problem });
+      
+      setCorrectedText(solveResult.correctedText);
+      setSolution(solveResult.solvedResult);
+      setExplanation(solveResult.explanation);
+      setGraphData(solveResult.graphData?.isPlottable ? solveResult.graphData : null);
+
+      if (user && db && storage) {
+        let finalImageDataUrl = inputImageDataUrl;
+        
+        if (currentActiveInput === 'text') {
+            toast({ title: "Equation Solved", description: "Text-only solutions are not saved to history." });
+            return;
+        }
+        
+        if(finalImageDataUrl) {
+          const storageRef = ref(storage, `equations/${user.uid}/${Date.now()}.png`);
+          await uploadString(storageRef, finalImageDataUrl, 'data_url');
+          const downloadURL = await getDownloadURL(storageRef);
+
+          await addDoc(collection(db, "equations"), {
+            userId: user.uid,
+            ocrText: problem,
+            correctedText: solveResult.correctedText,
+            solvedResult: solveResult.solvedResult,
+            explanation: solveResult.explanation,
+            imageUrl: downloadURL,
+            createdAt: serverTimestamp(),
+            graphData: solveResult.graphData ?? null,
+          });
+          toast({ title: "Success!", description: "Equation solved and saved to your history." });
+        }
+      } else {
+         toast({ title: "Equation Solved", description: "Log in to save your results to history." });
+      }
+    } catch (e: any) {
+      console.error(e);
+      setError("An error occurred while solving the equation.");
+      toast({ title: "Solving Error", description: "The AI might not be able to solve this problem yet.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
   const handleInitiateSolve = async () => {
     let imageDataUrl: string | null = null;
     let source: 'upload' | 'draw' | 'text' | null = null;
@@ -231,16 +279,20 @@ export default function SolveTab() {
       return;
     }
     
-    setActiveInput(source);
-    setIsLoading(true);
     resetResults();
-    setInputImageDataUrl(imageDataUrl); // Set for download/export
+    setActiveInput(source);
+    setInputImageDataUrl(imageDataUrl);
+
+    if (source === 'text') {
+      setOcrText(problemToSolve); // Display the input text in the OCR field
+      await solveProblem(problemToSolve!, source);
+      return;
+    }
+    
+    setIsLoading(true);
 
     try {
-      if (source === 'text') {
-        setOcrText(problemToSolve);
-        setIsConfirming(true);
-      } else if (imageDataUrl) {
+      if (imageDataUrl) {
         const ocrResult = await extractEquationFromImage({ photoDataUri: imageDataUrl });
         
         if (!ocrResult.ocrText.trim()) {
@@ -251,6 +303,7 @@ export default function SolveTab() {
         }
         setOcrText(ocrResult.ocrText);
         setIsConfirming(true);
+        setIsLoading(false);
       }
     } catch (e: any) {
       console.error(e);
@@ -261,59 +314,9 @@ export default function SolveTab() {
   };
   
   const handleConfirmSolve = async () => {
-    if (!ocrText) return;
     setIsConfirming(false);
-
-    try {
-      // The `solveEquation` flow now handles correction and solving in one step.
-      const solveResult = await solveEquation({ ocrText });
-      
-      setCorrectedText(solveResult.correctedText);
-      setSolution(solveResult.solvedResult);
-      setExplanation(solveResult.explanation);
-      setGraphData(solveResult.graphData?.isPlottable ? solveResult.graphData : null);
-
-      if (user && db && storage) {
-        let finalImageDataUrl: string | null = null;
-        if (activeInput === 'upload' && imgRef.current && completedCrop) {
-          finalImageDataUrl = await getCroppedDataUrl(imgRef.current, completedCrop);
-        } else if (activeInput === 'draw' && canvasRef.current) {
-          finalImageDataUrl = canvasRef.current.getDataURL();
-        } else if (activeInput === 'text') {
-          // For text input, we can generate an image of the text, or save without one.
-          // For consistency in the history tab, let's skip saving text-only for now.
-        }
-        
-        if(finalImageDataUrl) {
-          const storageRef = ref(storage, `equations/${user.uid}/${Date.now()}.png`);
-          await uploadString(storageRef, finalImageDataUrl, 'data_url');
-          const downloadURL = await getDownloadURL(storageRef);
-
-          await addDoc(collection(db, "equations"), {
-            userId: user.uid,
-            ocrText: ocrText,
-            correctedText: solveResult.correctedText,
-            solvedResult: solveResult.solvedResult,
-            explanation: solveResult.explanation,
-            imageUrl: downloadURL,
-            createdAt: serverTimestamp(),
-            graphData: solveResult.graphData ?? null,
-          });
-          toast({ title: "Success!", description: "Equation solved and saved to your history." });
-        } else if (activeInput === 'text') {
-            toast({ title: "Equation Solved", description: "Text-only solutions are not saved to history yet." });
-        } else {
-           toast({ title: "Equation Solved", description: "Log in to save your results to history." });
-        }
-      } else {
-         toast({ title: "Equation Solved", description: "Log in to save your results to history." });
-      }
-    } catch (e: any) {
-      console.error(e);
-      setError("An error occurred while solving the equation.");
-      toast({ title: "Solving Error", description: "The AI might not be able to solve this problem yet.", variant: "destructive" });
-    } finally {
-      setIsLoading(false);
+    if (ocrText) {
+      await solveProblem(ocrText, activeInput);
     }
   };
 
@@ -328,7 +331,7 @@ export default function SolveTab() {
   return (
     <Card className="animate-in fade-in-0 duration-500 transition-shadow hover:shadow-lg hover:shadow-primary/20">
       <CardHeader>
-        <CardTitle>Solve a Math Problem</CardTitle>
+        <CardTitle>Let's solve your problem</CardTitle>
         <CardDescription>Upload an image, draw, or type a problem, then let AI solve it for you.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -370,7 +373,7 @@ export default function SolveTab() {
 
             <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg flex-1 bg-background transition-colors hover:border-primary">
               <h3 className="text-lg font-medium flex items-center justify-center gap-2">
-                <Keyboard className="w-5 h-5"/> Or Type it Manually
+                <Keyboard className="w-5 h-5"/> Or Type-in here
               </h3>
               <Textarea 
                 placeholder="Type your math problem or equation here... For example: 'If a train travels at 60 mph for 3 hours, how far does it travel?' or 'd/dx(sin(x^2))'"
@@ -384,7 +387,7 @@ export default function SolveTab() {
           
           {/* Right Column: Draw */}
           <div className="flex flex-col items-center space-y-4 border p-4 rounded-lg h-full bg-background transition-colors hover:border-primary">
-            <h3 className="text-lg font-medium flex items-center gap-2"><Pencil className="w-5 h-5"/> Or Draw It</h3>
+            <h3 className="text-lg font-medium flex items-center gap-2"><Pencil className="w-5 h-5"/> Draw on Canvas</h3>
             <Canvas ref={canvasRef} onInteraction={handleCanvasInteraction} />
           </div>
 
@@ -393,12 +396,12 @@ export default function SolveTab() {
         <div className="flex flex-col items-center space-y-6 pt-6 border-t">
           <Button onClick={handleInitiateSolve} disabled={!canSolve || isLoading} size="lg">
             <BrainCircuit className="mr-2 h-5 w-5" />
-            {isLoading ? "Processing..." : "Solve Problem"}
+            {isLoading ? "Processing..." : "Get Solution"}
           </Button>
           
           <div className="w-full max-w-4xl">
             <EquationResult 
-              isLoading={isLoading && !isConfirming}
+              isLoading={isLoading}
               error={error}
               ocrText={ocrText}
               correctedText={correctedText}

@@ -13,8 +13,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { GoogleAuthProvider, signInWithPopup, signOut, type AuthError } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { LogIn, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+const GoogleGIcon = () => (
+    <svg className="mr-2 h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+        <path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 110.3 512 0 401.7 0 265.2 0 128.5 110.3 19.2 244 19.2c71.2 0 130.3 27.8 177.1 72.8l-66.3 64.4c-26-24.5-60.6-39.7-110.8-39.7-84.3 0-152.4 68.8-152.4 153.2 0 84.4 68.1 153.2 152.4 153.2 97.4 0 135.2-67.5 140.8-102.7H244v-75h244z"></path>
+    </svg>
+);
+
 
 export default function AuthButton() {
   const { user, loading } = useAuth();
@@ -65,9 +72,9 @@ export default function AuthButton() {
 
   if (!user) {
     return (
-      <Button onClick={handleSignIn}>
-        <LogIn className="mr-2 h-4 w-4" />
-        Login with Google
+      <Button onClick={handleSignIn} variant="google">
+        <GoogleGIcon />
+        Login
       </Button>
     );
   }

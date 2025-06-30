@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -40,7 +40,6 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
   const handleAccordionChange = (value: string) => {
     setOpenAccordionItem(value);
     if (value === 'graph') {
-      // Use a timeout to ensure the plot redraws after the container is visible.
       setTimeout(() => setPlotRevision(r => r + 1), 0);
     }
   }
@@ -79,44 +78,56 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
   };
   
   const handleDownloadPdf = async () => {
-    const element = printRef.current;
-    if (!element) return;
+    const input = printRef.current;
+    if (!input) return;
   
     toast({ title: "Generating PDF...", description: "Please wait a moment." });
   
-    // Temporarily make the element visible for rendering but keep it off-screen
-    element.style.position = 'absolute';
-    element.style.left = '-9999px';
-    element.style.top = '-9999px';
-    element.style.display = 'block';
-    
-    // Get background color from CSS var
+    // To ensure we capture the whole content, we make it visible but off-screen
+    input.style.position = 'absolute';
+    input.style.left = '-9999px';
+    input.style.display = 'block';
+  
     const darkBg = getComputedStyle(document.documentElement).getPropertyValue('--background').trim();
   
-    try {
-      const canvas = await html2canvas(element, {
+    html2canvas(input, {
         backgroundColor: `hsl(${darkBg})`,
         scale: 2,
         useCORS: true,
-      });
-  
-      const data = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgProperties = pdf.getImageProperties(data);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProperties.height * pdfWidth) / imgProperties.width;
-      
-      pdf.addImage(data, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Equation-Ace-Solution-${new Date().toISOString().slice(0,10)}.pdf`);
-      toast({ title: "Downloaded!", description: "Solution saved as a .pdf file." });
-    } catch(err) {
-      console.error(err);
-      toast({ variant: 'destructive', title: "PDF Error", description: "Could not generate PDF." });
-    } finally {
-      // Hide it again
-      element.style.display = 'none';
-      element.style.position = 'static';
-    }
+        height: input.scrollHeight, // Tell html2canvas to render the full height
+        windowHeight: input.scrollHeight,
+    }).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        
+        const imgProps= pdf.getImageProperties(imgData);
+        const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        
+        let heightLeft = imgHeight;
+        let position = 0;
+        
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfHeight;
+        
+        while (heightLeft > 0) {
+          position = -heightLeft;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+          heightLeft -= pdfHeight;
+        }
+        
+        pdf.save(`Equation-Ace-Solution-${new Date().toISOString().slice(0,10)}.pdf`);
+        toast({ title: "Downloaded!", description: "Solution saved as a .pdf file." });
+    }).catch(err => {
+        console.error(err);
+        toast({ variant: 'destructive', title: "PDF Error", description: "Could not generate PDF." });
+    }).finally(() => {
+        // Hide it again
+        input.style.display = 'none';
+        input.style.position = 'static';
+    });
   };
 
 
@@ -220,7 +231,7 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
                       <LineChartIcon className="mr-2 h-4 w-4" />
                       Show Graph Visualization
                     </AccordionTrigger>
-                    <AccordionContent forceMount>
+                    <AccordionContent>
                        <div className="h-[400px] w-full bg-muted p-4 rounded-b-md">
                          <PlotlyChart functionStr={graphData.functionStr} revision={plotRevision} />
                        </div>
