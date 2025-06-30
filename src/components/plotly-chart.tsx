@@ -10,10 +10,9 @@ interface PlotlyChartProps {
   functionStr: string;
   className?: string;
   isHistory?: boolean;
-  revision?: number;
 }
 
-const PlotlyChart = ({ functionStr, className, isHistory = false, revision }: PlotlyChartProps) => {
+const PlotlyChart = ({ functionStr, className, isHistory = false }: PlotlyChartProps) => {
   const [plotState, setPlotState] = useState<{data: any[], layout: any} | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +21,7 @@ const PlotlyChart = ({ functionStr, className, isHistory = false, revision }: Pl
       if (!functionStr) return;
       const compiledExpr = math.compile(functionStr);
       // Increased the number of points for a smoother curve by reducing the step value.
-      const xValues = math.range(-10, 10.1, 0.1).toArray() as number[];
+      const xValues = math.range(-10, 10.05, 0.05).toArray() as number[];
       const yValues = xValues.map(x => compiledExpr.evaluate({ x }));
       
       const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
@@ -87,7 +86,6 @@ const PlotlyChart = ({ functionStr, className, isHistory = false, revision }: Pl
       layout={plotState.layout}
       config={{ responsive: true, displaylogo: false }}
       className={className || 'w-full h-full'}
-      revision={revision}
     />
   );
 };

@@ -19,7 +19,7 @@ export default function HistoryTab() {
   const { user, loading: authLoading } = useAuth();
   const [equations, setEquations] = useState<Equation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [plotRevisions, setPlotRevisions] = useState<Record<string, number>>({});
+  const [openAccordionItem, setOpenAccordionItem] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -64,14 +64,6 @@ export default function HistoryTab() {
 
     return () => unsubscribe();
   }, [user]);
-
-  const handleHistoryAccordionChange = (value: string, eqId: string) => {
-    if (value === `graph-${eqId}`) {
-      setTimeout(() => {
-        setPlotRevisions(revs => ({ ...revs, [eqId]: (revs[eqId] || 0) + 1 }));
-      }, 0);
-    }
-  };
 
   if (authLoading) {
     return <HistorySkeleton />;
@@ -130,7 +122,7 @@ export default function HistoryTab() {
                         {eq.solvedResult.join(', ')}
                     </p>
                  </div>
-                  <Accordion type="single" collapsible className="w-full text-sm" onValueChange={(value) => handleHistoryAccordionChange(value, eq.id)}>
+                  <Accordion type="single" collapsible className="w-full text-sm" onValueChange={(value) => setOpenAccordionItem(value)}>
                       {eq.explanation && eq.explanation.length > 0 && (
                           <AccordionItem value={`explanation-${eq.id}`}>
                               <AccordionTrigger className="py-2 text-xs hover:no-underline">View Explanation</AccordionTrigger>
@@ -146,7 +138,9 @@ export default function HistoryTab() {
                               <AccordionTrigger className="py-2 text-xs hover:no-underline"><LineChartIcon className="mr-2 h-4 w-4" />View Graph</AccordionTrigger>
                               <AccordionContent>
                                   <div className="h-[250px] w-full bg-muted p-2 rounded-b-md">
-                                    <PlotlyChart functionStr={eq.graphData.functionStr} isHistory={true} revision={plotRevisions[eq.id]} />
+                                    {openAccordionItem === `graph-${eq.id}` && (
+                                      <PlotlyChart functionStr={eq.graphData.functionStr} isHistory={true} />
+                                    )}
                                   </div>
                               </AccordionContent>
                           </AccordionItem>
