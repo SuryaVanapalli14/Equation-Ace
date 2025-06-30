@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SolveTab from '@/components/solve-tab';
 import HistoryTab from '@/components/history-tab';
 import { Button } from '@/components/ui/button';
-import { UploadCloud, Pencil, Lightbulb, LineChart } from "lucide-react";
+import { UploadCloud, Pencil, Lightbulb, LineChart, Github, Twitter, Instagram } from "lucide-react";
 
 export default function Home() {
   const handleScrollToSolver = () => {
@@ -62,9 +62,9 @@ export default function Home() {
             <h2 className="text-3xl font-bold text-center mb-16">
               Why You'll Love Equation Ace
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {features.map((feature, index) => (
-                <div key={index} className="text-center">
+                <div key={index} className="text-center p-6 border rounded-lg transition-all duration-300 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-2 cursor-pointer">
                   <div className="flex items-center justify-center h-16 w-16 mx-auto rounded-full bg-primary/10 mb-6">
                     {feature.icon}
                   </div>
@@ -94,6 +94,35 @@ export default function Home() {
            </div>
         </section>
       </main>
+      <footer className="bg-card border-t">
+        <div className="container mx-auto px-6 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+            <div className="flex flex-col items-center md:items-start">
+              <h3 className="text-lg font-bold">Equation Ace</h3>
+              <p className="text-sm text-muted-foreground mt-2 max-w-xs">The ultimate AI-powered assistant to solve and understand complex mathematical problems instantly.</p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-foreground">Quick Links</h4>
+              <ul className="mt-2 space-y-2">
+                <li><a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Home</a></li>
+                <li><a href="#solver" className="text-sm text-muted-foreground hover:text-primary transition-colors">Solver</a></li>
+                <li><a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Privacy Policy</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-foreground">Follow Us</h4>
+              <div className="flex justify-center md:justify-start gap-5 mt-3">
+                <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Github className="h-5 w-5" /></a>
+                <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Twitter className="h-5 w-5" /></a>
+                <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Instagram className="h-5 w-5" /></a>
+              </div>
+            </div>
+          </div>
+          <div className="border-t mt-8 pt-6 text-center text-sm text-muted-foreground">
+            &copy; {new Date().getFullYear()} Equation Ace. All Rights Reserved. Built with Next.js and Firebase.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
