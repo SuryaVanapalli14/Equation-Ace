@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, type FirebaseOptions, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { getFirestore, type Firestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig: FirebaseOptions = {
@@ -27,6 +27,16 @@ if (isFirebaseConfigured) {
   auth = getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);
+
+  enableIndexedDbPersistence(db)
+    .catch((err) => {
+      if (err.code == 'failed-precondition') {
+        console.warn('Firestore persistence failed: multiple tabs open.');
+      } else if (err.code == 'unimplemented') {
+        console.warn('Firestore persistence is not supported in this browser.');
+      }
+    });
+
 } else {
   // This will show in the server console, not the browser.
   console.warn(`

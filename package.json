@@ -59,6 +59,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@ducanh2912/next-pwa": "^10.2.7",
     "@types/jspdf": "^2.0.0",
     "@types/node": "^20",
     "@types/plotly.js": "^2.29.3",

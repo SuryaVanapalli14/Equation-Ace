@@ -259,6 +259,15 @@ export default function SolveTab() {
 
 
   const handleInitiateSolve = async () => {
+    if (!navigator.onLine) {
+      toast({
+        variant: "destructive",
+        title: "You're Offline",
+        description: "An internet connection is required to get a solution.",
+      });
+      return;
+    }
+
     let imageDataUrl: string | null = null;
     let source: 'upload' | 'draw' | 'text' | null = null;
     let problemToSolve: string | null = null;
