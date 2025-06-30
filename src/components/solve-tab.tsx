@@ -30,7 +30,6 @@ import ReactCrop, {
 import 'react-image-crop/dist/ReactCrop.css';
 
 import { extractEquationFromImage } from "@/ai/flows/extract-equation-from-image";
-import { correctEquationMistakes } from "@/ai/flows/correct-equation-mistakes";
 import { solveEquation } from "@/ai/flows/solve-equation";
 import { db, storage } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -266,10 +265,10 @@ export default function SolveTab() {
     setIsConfirming(false);
 
     try {
-      const correctedResult = await correctEquationMistakes({ ocrText });
-      setCorrectedText(correctedResult.correctedText);
-
-      const solveResult = await solveEquation({ ocrText: correctedResult.correctedText });
+      // The `solveEquation` flow now handles correction and solving in one step.
+      const solveResult = await solveEquation({ ocrText });
+      
+      setCorrectedText(solveResult.correctedText);
       setSolution(solveResult.solvedResult);
       setExplanation(solveResult.explanation);
       setGraphData(solveResult.graphData?.isPlottable ? solveResult.graphData : null);
@@ -293,7 +292,7 @@ export default function SolveTab() {
           await addDoc(collection(db, "equations"), {
             userId: user.uid,
             ocrText: ocrText,
-            correctedText: correctedResult.correctedText,
+            correctedText: solveResult.correctedText,
             solvedResult: solveResult.solvedResult,
             explanation: solveResult.explanation,
             imageUrl: downloadURL,
