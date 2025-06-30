@@ -15,7 +15,7 @@ const Logo = () => (
 export default function Header() {
   return (
     <header className="border-b border-border backdrop-blur-lg sticky top-0 z-50 bg-background/80">
-      <div className="container mx-auto px-4">
+      <div className="w-full px-6">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center hover:opacity-90 transition-opacity">
             <Logo />

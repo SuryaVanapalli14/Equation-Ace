@@ -131,7 +131,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t mt-8 pt-6 text-center text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} Equation Ace. All Rights Reserved. Built with Next.js and Firebase.
+            &copy; {new Date().getFullYear()} Equation Ace. Developed by Student of CSM NRIIT.
           </div>
         </div>
       </footer>

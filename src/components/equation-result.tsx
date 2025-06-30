@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useState } from "react";
@@ -269,6 +270,14 @@ export default function EquationResult({ ocrText, correctedText, solution, expla
             <h2 style={{ fontSize: '16px', borderBottom: '1px solid hsl(var(--muted))', paddingBottom: '5px' }}>Step-by-step Explanation:</h2>
             <pre className="bg-muted text-foreground" style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', padding: '10px', borderRadius: '4px' }}>{explanation?.join('\n\n') || "N/A"}</pre>
           </div>
+          {graphData?.isPlottable && graphData.functionStr && (
+            <div style={{ marginBottom: '20px', pageBreakInside: 'avoid' }}>
+                <h2 style={{ fontSize: '16px', borderBottom: '1px solid hsl(var(--muted))', paddingBottom: '5px', marginBottom: '10px' }}>Graph Visualization</h2>
+                <div style={{ width: '180mm', height: '120mm', border: '1px solid hsl(var(--border))', borderRadius: '4px', overflow: 'hidden' }}>
+                    <PlotlyChart functionStr={graphData.functionStr} />
+                </div>
+            </div>
+          )}
           <p style={{borderTop: '1px solid hsl(var(--border))', paddingTop: '10px', marginTop: '20px', textAlign: 'center', fontSize: '10px' }}>Solved by Equation Ace</p>
       </div>
 
