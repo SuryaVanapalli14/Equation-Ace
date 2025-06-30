@@ -36,9 +36,9 @@ export default function Home() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col h-full">
       <Header />
-      <main className="flex-grow">
+      <main className="flex-grow overflow-y-auto">
         {/* Hero Section */}
         <section className="bg-background text-center py-20 md:py-32">
           <div className="container mx-auto px-4">
