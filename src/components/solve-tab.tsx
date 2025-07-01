@@ -5,18 +5,8 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import { UploadCloud, BrainCircuit, Check, X, Trash2, Pencil, GalleryHorizontal, Keyboard } from "lucide-react";
+import { UploadCloud, BrainCircuit, Trash2, Pencil, GalleryHorizontal, Keyboard } from "lucide-react";
 import EquationResult from "./equation-result";
 import Canvas, { type CanvasRef } from "./canvas";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,8 +19,7 @@ import ReactCrop, {
 } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
-import { extractEquationFromImage } from "@/ai/flows/extract-equation-from-image";
-import { solveEquation } from "@/ai/flows/solve-equation";
+import { solveEquation, type SolveEquationInput } from "@/ai/flows/solve-equation";
 import { db, storage } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
@@ -72,14 +61,12 @@ export default function SolveTab() {
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [textInput, setTextInput] = useState("");
-  const [activeInput, setActiveInput] = useState<'upload' | 'draw' | 'text' | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [inputImageDataUrl, setInputImageDataUrl] = useState<string | null>(null);
 
   // --- AI & Result State ---
   const [isLoading, setIsLoading] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ocrText, setOcrText] = useState<string | null>(null);
   const [correctedText, setCorrectedText] = useState<string | null>(null);
@@ -210,54 +197,6 @@ export default function SolveTab() {
     return canvas.toDataURL('image/png');
   }
 
-  const solveProblem = async (problem: string, currentActiveInput: 'upload' | 'draw' | 'text' | null) => {
-    setIsLoading(true);
-    try {
-      const solveResult = await solveEquation({ ocrText: problem });
-      
-      setCorrectedText(solveResult.correctedText);
-      setSolution(solveResult.solvedResult);
-      setExplanation(solveResult.explanation);
-      setGraphData(solveResult.graphData?.isPlottable ? solveResult.graphData : null);
-
-      if (user && db && storage) {
-        let finalImageDataUrl = inputImageDataUrl;
-        
-        if (currentActiveInput === 'text') {
-            toast({ title: "Equation Solved", description: "Text-only solutions are not saved to history." });
-            return;
-        }
-        
-        if(finalImageDataUrl) {
-          const storageRef = ref(storage, `equations/${user.uid}/${Date.now()}.png`);
-          await uploadString(storageRef, finalImageDataUrl, 'data_url');
-          const downloadURL = await getDownloadURL(storageRef);
-
-          await addDoc(collection(db, "equations"), {
-            userId: user.uid,
-            ocrText: problem,
-            correctedText: solveResult.correctedText,
-            solvedResult: solveResult.solvedResult,
-            explanation: solveResult.explanation,
-            imageUrl: downloadURL,
-            createdAt: serverTimestamp(),
-            graphData: solveResult.graphData ?? null,
-          });
-          toast({ title: "Success!", description: "Equation solved and saved to your history." });
-        }
-      } else {
-         toast({ title: "Equation Solved", description: "Log in to save your results to history." });
-      }
-    } catch (e: any) {
-      console.error(e);
-      setError("An error occurred while solving the equation.");
-      toast({ title: "Solving Error", description: "The AI might not be able to solve this problem yet.", variant: "destructive" });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-
   const handleInitiateSolve = async () => {
     if (!navigator.onLine) {
       toast({
@@ -268,71 +207,67 @@ export default function SolveTab() {
       return;
     }
 
-    let imageDataUrl: string | null = null;
-    let source: 'upload' | 'draw' | 'text' | null = null;
-    let problemToSolve: string | null = null;
+    let input: SolveEquationInput = {};
+    let currentImageDataUrl: string | null = null;
+    let isTextOnly = false;
 
     if (textInput.trim()) {
-      problemToSolve = textInput.trim();
-      source = 'text';
+      input.problemStatement = textInput.trim();
+      isTextOnly = true;
     } else if (file && originalImageUrl && imgRef.current && completedCrop && completedCrop.width > 0) {
-      imageDataUrl = await getCroppedDataUrl(imgRef.current, completedCrop);
-      source = 'upload';
+      currentImageDataUrl = await getCroppedDataUrl(imgRef.current, completedCrop);
+      input.photoDataUri = currentImageDataUrl;
     } else if (isDrawing && canvasRef.current) {
-      imageDataUrl = canvasRef.current.getDataURL();
-      source = 'draw';
+      currentImageDataUrl = canvasRef.current.getDataURL();
+      input.photoDataUri = currentImageDataUrl;
     }
 
-    if (!source) {
+    if (!input.problemStatement && !input.photoDataUri) {
       toast({ title: "No Input Provided", description: "Please upload an image, draw, or type in a problem.", variant: "destructive" });
       return;
     }
     
     resetResults();
-    setActiveInput(source);
-    setInputImageDataUrl(imageDataUrl);
-
-    if (source === 'text') {
-      setOcrText(problemToSolve); // Display the input text in the OCR field
-      await solveProblem(problemToSolve!, source);
-      return;
-    }
-    
     setIsLoading(true);
+    setInputImageDataUrl(currentImageDataUrl);
 
     try {
-      if (imageDataUrl) {
-        const ocrResult = await extractEquationFromImage({ photoDataUri: imageDataUrl });
-        
-        if (!ocrResult.ocrText.trim()) {
-          const message = source === 'draw' ? "The canvas is empty. Please draw an equation." : "Could not find any text in the selected area.";
-          toast({ title: "Nothing to solve", description: message, variant: "destructive" });
-          setIsLoading(false);
-          return;
-        }
-        setOcrText(ocrResult.ocrText);
-        setIsConfirming(true);
-        setIsLoading(false);
+      const solveResult = await solveEquation(input);
+      
+      setOcrText(solveResult.ocrText ?? (isTextOnly ? textInput.trim() : null));
+      setCorrectedText(solveResult.correctedText);
+      setSolution(solveResult.solvedResult);
+      setExplanation(solveResult.explanation);
+      setGraphData(solveResult.graphData?.isPlottable ? solveResult.graphData : null);
+
+      if (user && db && storage && currentImageDataUrl) {
+          const storageRef = ref(storage, `equations/${user.uid}/${Date.now()}.png`);
+          await uploadString(storageRef, currentImageDataUrl, 'data_url');
+          const downloadURL = await getDownloadURL(storageRef);
+
+          await addDoc(collection(db, "equations"), {
+            userId: user.uid,
+            ocrText: solveResult.ocrText || 'N/A',
+            correctedText: solveResult.correctedText,
+            solvedResult: solveResult.solvedResult,
+            explanation: solveResult.explanation,
+            imageUrl: downloadURL,
+            createdAt: serverTimestamp(),
+            graphData: solveResult.graphData ?? null,
+          });
+          toast({ title: "Success!", description: "Equation solved and saved to your history." });
+      } else if (isTextOnly) {
+        toast({ title: "Equation Solved", description: "Text-only solutions are not saved to history." });
+      } else {
+         toast({ title: "Equation Solved", description: "Log in to save your results to history." });
       }
     } catch (e: any) {
       console.error(e);
-      setError("An error occurred while extracting text from the image.");
-      toast({ title: "Extraction Error", description: "Could not read text from the image. Please try again.", variant: "destructive" });
+      setError("An error occurred while solving the equation. The AI may not be able to process this request.");
+      toast({ title: "Solving Error", description: "Could not solve the equation. Please try a different problem.", variant: "destructive" });
+    } finally {
       setIsLoading(false);
     }
-  };
-  
-  const handleConfirmSolve = async () => {
-    setIsConfirming(false);
-    if (ocrText) {
-      await solveProblem(ocrText, activeInput);
-    }
-  };
-
-  const handleCancelSolve = () => {
-    setIsConfirming(false);
-    setOcrText(null);
-    setIsLoading(false);
   };
   
   const canSolve = !!file || isDrawing || !!textInput.trim();
@@ -355,7 +290,7 @@ export default function SolveTab() {
                   htmlFor="file-upload"
                   onDragEnter={handleDragEnter}
                   onDragLeave={handleDragLeave}
-  onDragOver={handleDragOver}
+                  onDragOver={handleDragOver}
                   onDrop={handleDrop}
                   className="w-full cursor-pointer"
                 >
@@ -421,20 +356,6 @@ export default function SolveTab() {
             />
           </div>
         </div>
-        
-        <AlertDialog open={isConfirming} onOpenChange={setIsConfirming}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Extracted Text</AlertDialogTitle>
-              <AlertDialogDescription>Please review and edit the extracted text if needed before solving.</AlertDialogDescription>
-            </AlertDialogHeader>
-            <Textarea value={ocrText || ""} onChange={(e) => setOcrText(e.target.value)} className="font-code text-lg min-h-[120px]" />
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={handleCancelSolve}><X className="mr-2 h-4 w-4" />Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmSolve}><Check className="mr-2 h-4 w-4" />Confirm & Solve</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </CardContent>
     </Card>
   );

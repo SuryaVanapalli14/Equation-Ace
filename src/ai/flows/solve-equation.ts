@@ -1,8 +1,8 @@
 'use server';
 /**
- * @fileOverview Corrects and solves a math problem from OCR text in a single step.
+ * @fileOverview Corrects and solves a math problem from OCR text or an image in a single step.
  *
- * - solveEquation - A function that takes OCR text, corrects it, solves it, and returns the results.
+ * - solveEquation - A function that takes a problem as text or an image, and returns the full solution.
  * - SolveEquationInput - The input type for the solveEquation function.
  * - SolveEquationOutput - The return type for the solveEquation function.
  */
@@ -11,11 +11,18 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const SolveEquationInputSchema = z.object({
-  ocrText: z.string().describe('The OCR extracted text of the math problem.'),
+  problemStatement: z.string().optional().describe('The math problem as a string. Use this if no image is provided.'),
+  photoDataUri: z
+    .string()
+    .optional()
+    .describe(
+      "A photo of a mathematical problem, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'. Use this if no text is provided."
+    ),
 });
 export type SolveEquationInput = z.infer<typeof SolveEquationInputSchema>;
 
 const SolveEquationOutputSchema = z.object({
+  ocrText: z.string().optional().describe('The text extracted from the image via OCR, before correction. Only present if an image was provided.'),
   correctedText: z.string().describe('The corrected version of the problem text.'),
   solvedResult: z
     .array(z.string())
@@ -38,30 +45,27 @@ const solveEquationPrompt = ai.definePrompt({
   name: 'solveEquationPrompt',
   input: {schema: SolveEquationInputSchema},
   output: {schema: SolveEquationOutputSchema},
-  prompt: `You are an expert AI mathematician and OCR correction specialist. You will be given OCR text that might contain a word problem, a direct equation, or a mix of both. The text may have common OCR errors.
+  prompt: `You are an expert AI mathematician and OCR correction specialist.
 
-Your task is to perform two steps:
-1.  **Correct the OCR Text:** First, silently correct any common OCR mistakes in the provided text. This includes, but is not limited to:
-    - Correcting mistakes in both the natural language parts of the problem and the mathematical expressions.
-    - Misinterpreting 'O' as '0', 'l' as '1', 'S' as '5' or '∫'.
-    - Fixing malformed text for calculus, like 'd/dx', 'dy/dx', or '∫'.
-    - Recognizing probability and statistics notation, like 'P(A)', 'nCr', 'Σ', or '!'.
-    - Correcting exponents, like 'x^2' instead of 'x2'.
-    - Ensuring standard mathematical operators (+, -, *, /) are correctly represented.
-    Once corrected, provide this clean version in the 'correctedText' output field.
+{{#if photoDataUri}}
+You will be given an image containing a math problem. Your task is to perform three steps:
+1.  **Perform OCR:** Analyze the provided image and extract all relevant text. The text could be handwritten or digitally typed. Provide this raw, uncorrected extraction in the 'ocrText' output field.
+    Image: {{media url=photoDataUri}}
+2.  **Correct the OCR Text:** Using the text from step 1, silently correct any common OCR mistakes. This includes, but is not limited to, fixing misinterpretations ('O' for '0', 'l' for '1'), malformed calculus or probability notation, and incorrect exponents. Provide this clean version in the 'correctedText' output field.
+3.  **Solve the Corrected Problem:** Using the corrected text, solve the problem.
+{{else}}
+You will be given a math problem as text, which might contain errors. Your task is to perform two steps:
+1.  **Correct the Text:** First, silently correct any common errors in the provided text. Provide this clean version in the 'correctedText' output field.
+    Original Problem Text: {{{problemStatement}}}
+2.  **Solve the Corrected Problem:** Using the corrected text, solve the problem.
+{{/if}}
 
-2.  **Solve the Corrected Problem:** Using the corrected text from step 1, solve the problem. Your capabilities should cover:
-    - **Word Problems:** Parsing and solving problems described in natural language.
-    - **Algebra:** Solving for variables, simplifying expressions, systems of equations.
-    - **Calculus:** Differentiation, integration, limits, series.
-    - **Probability:** Calculating probabilities.
-    - **Statistics:** Mean, median, mode, permutations, combinations, factorials, summation.
+Your solving capabilities should cover Word Problems, Algebra, Calculus, Probability, and Statistics.
 
 Provide the final solved result. Also, provide a detailed, step-by-step explanation for how you arrived at the solution.
 
 If the problem results in a plottable 2D function (e.g., y = 3x + 2, f(x) = x^2 - 5), set graphData.isPlottable to true and provide the function expression as a string in graphData.functionStr (e.g., '3*x + 2' or 'x^2 - 5'). Otherwise, set graphData.isPlottable to false.
-
-Original OCR Text: {{{ocrText}}}`,
+`,
 });
 
 const solveEquationFlow = ai.defineFlow(
@@ -71,6 +75,9 @@ const solveEquationFlow = ai.defineFlow(
     outputSchema: SolveEquationOutputSchema,
   },
   async input => {
+    if (!input.photoDataUri && !input.problemStatement) {
+        throw new Error('Either an image or a problem statement must be provided.');
+    }
     const {output} = await solveEquationPrompt(input);
     return output!;
   }
